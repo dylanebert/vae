@@ -21,9 +21,8 @@ x_train = np.reshape(x_train, (-1, params.image_size * params.image_size * param
 x_test = np.reshape(x_test, (-1, params.image_size * params.image_size * params.num_channels)).astype('float32') / 255.
 
 x = Input(shape=(params.image_size * params.image_size * params.num_channels,))
-h1 = Dense(params.hidden_size, activation='relu')(x)
-z_mean = Dense(params.latent_size, name='z_mean')(h1)
-z_stddev = Dense(params.latent_size, name='z_log_var')(h1)
+z_mean = Dense(params.latent_size, name='z_mean')(x)
+z_stddev = Dense(params.latent_size, name='z_log_var')(x)
 
 #random sampling from Z
 def sampling(args):
@@ -35,11 +34,9 @@ z = Lambda(sampling, output_shape=(params.latent_size,), name='z')([z_mean, z_st
 
 encoder = Model(x, z)
 
-decoder_hidden = Dense(params.hidden_size, activation='relu')
 decoder_output = Dense(params.image_size * params.image_size * params.num_channels, activation='sigmoid')
 
-h1 = decoder_hidden(z)
-x_reconstruct = decoder_output(h1)
+x_reconstruct = decoder_output(z)
 vae = Model(x, x_reconstruct)
 
 vae = Model(x, x_reconstruct)
@@ -55,8 +52,7 @@ vae.compile(optimizer=optimizer)
 vae.summary()
 
 _z = Input(shape=(params.latent_size,))
-_h1 = decoder_hidden(_z)
-_x_reconstruct = decoder_output(_h1)
+_x_reconstruct = decoder_output(_z)
 decoder = Model(_z, _x_reconstruct)
 
 if args.train:

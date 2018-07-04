@@ -19,11 +19,11 @@ from scipy.stats import norm, multivariate_normal
 from matplotlib import cm
 from data_generator import DataGenerator
 from sklearn.metrics import confusion_matrix
+from params import Params
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 #parse args
 parser = argparse.ArgumentParser()
-parser.add_argument('--hyperparams_path', help='override path to hyperparameters file', type=str, default='')
 parser.add_argument('--data_path', help='override directory for data', type=str, default='')
 parser.add_argument('--save_path', help='override path to save files', type=str, default='')
 parser.add_argument('--nz', help='override default latent dimension from hyperparameter file', type=int, default=0)
@@ -39,13 +39,6 @@ parser.add_argument('--compute_means', help='compute mean (prototype) of each cl
 parser.add_argument('--test_means', help='test classification accuracy using nearest means', action='store_true')
 parser.add_argument('--entailment', help='test entailment task', action='store_true')
 args = parser.parse_args()
-
-if args.hyperparams_path == '':
-    print('Using default hyperparams path hyperparams.json')
-    hyperparams_path = 'hyperparams.json'
-else:
-    print('Overriding hyperparams path to {0}'.format(args.hyperparams_path))
-    hyperparams_path = args.hyperparams_path
 
 if args.data_path == '':
     print('Using default data path data/')
@@ -68,66 +61,60 @@ else:
     save_path = save_directory + 'weights_final.h5'
 means_path = save_directory + 'means.p'
 
-#load hyperparameters from file
-params = json.load(open(hyperparams_path))
-print('Successfully loaded hyperparameters: {0}'.format(params))
+params = Params()
+if params.num_channels == 1:
+    cmap = 'gray'
+else:
+    cmap = None
 
 #create data loaders
 train_generator = DataGenerator(data_path + 'train/', params, grayscale=args.grayscale)
 dev_generator = DataGenerator(data_path + 'dev/', params, grayscale=args.grayscale)
 test_generator = DataGenerator(data_path + 'test/', params, grayscale=args.grayscale)
-
 num_classes = train_generator.num_classes()
-if args.grayscale:
-    num_channels = 1
-    cmap = 'gray'
-else:
-    num_channels = 3
-    cmap = None
-#hidden_size = params['image_size'] * params['image_size'] * num_channels
 
 if not args.nz == 0:
-    params['n_z'] = args.nz
+    params.latent_size = args.nz
     print('Overriding latent dimension to size {0}'.format(args.nz))
 
 #input
-input_shape = [params['image_size'], params['image_size'], num_channels]
+input_shape = [params.image_size, params.image_size, params.num_channels]
 x = Input(shape=input_shape)
 
 #encoder
-conv1 = Conv2D(num_channels, kernel_size=(2, 2), padding='same', activation='relu')(x)
-conv2 = Conv2D(params['filters'], kernel_size=(2, 2), padding='same', activation='relu', strides=(2, 2))(conv1)
-conv3 = Conv2D(params['filters'], kernel_size=params['kernel_size'], padding='same', activation='relu', strides=1)(conv2)
-conv4 = Conv2D(params['filters'], kernel_size=params['kernel_size'], padding='same', activation='relu', strides=1)(conv3)
+conv1 = Conv2D(params.num_channels, kernel_size=(2, 2), padding='same', activation='relu')(x)
+conv2 = Conv2D(params.filters, kernel_size=(2, 2), padding='same', activation='relu', strides=(2, 2))(conv1)
+conv3 = Conv2D(params.filters, kernel_size=params.kernel_size, padding='same', activation='relu', strides=1)(conv2)
+conv4 = Conv2D(params.filters, kernel_size=params.kernel_size, padding='same', activation='relu', strides=1)(conv3)
 flat = Flatten()(conv4)
 #hidden = Dense(hidden_size, activation='relu')(flat)
 
 #latent space Z (mean and std)
-z_mean = Dense(params['n_z'])(flat)
-z_stddev = Dense(params['n_z'])(flat)
+z_mean = Dense(params.latent_size)(flat)
+z_stddev = Dense(params.latent_size)(flat)
 
 #random sampling from Z
 def sampling(args):
     z_mean, z_stddev = args
-    epsilon = K.random_normal(shape=(K.shape(z_mean)[0], params['n_z']), mean=0., stddev=params['epsilon_std'])
+    epsilon = K.random_normal(shape=(K.shape(z_mean)[0], params.latent_size), mean=0., stddev=1.0)
     return z_mean + K.exp(z_stddev) * epsilon
 
-z = Lambda(sampling, output_shape=(params['n_z'],))([z_mean, z_stddev])
+z = Lambda(sampling, output_shape=(params.latent_size,))([z_mean, z_stddev])
 
 #decoder
 #decoder_hidden = Dense(hidden_size, activation='relu')
-decoder_upsample = Dense(params['filters'] * (params['image_size'] // 2) * (params['image_size'] // 2), activation='relu')
+decoder_upsample = Dense(params.filters * (params.image_size // 2) * (params.image_size // 2), activation='relu')
 
-output_shape = (params['batch_size'], params['image_size'] // 2, params['image_size'] // 2, params['filters'])
+output_shape = (params.batch_size, params.image_size // 2, params.image_size // 2, params.filters)
 
 decoder_reshape = Reshape(output_shape[1:])
-decoder_deconv1 = Conv2DTranspose(params['filters'], kernel_size=params['kernel_size'], padding='same', strides=1, activation='relu')
-decoder_deconv2 = Conv2DTranspose(params['filters'], kernel_size=params['kernel_size'], padding='same', strides=1, activation='relu')
+decoder_deconv1 = Conv2DTranspose(params.filters, kernel_size=params.kernel_size, padding='same', strides=1, activation='relu')
+decoder_deconv2 = Conv2DTranspose(params.filters, kernel_size=params.kernel_size, padding='same', strides=1, activation='relu')
 
-output_shape = (params['batch_size'], params['filters'], params['image_size'] + 1, params['image_size'] + 1)
+output_shape = (params.batch_size, params.filters, params.image_size + 1, params.image_size + 1)
 
-decoder_deconv3_upsamp = Conv2DTranspose(params['filters'], kernel_size=(3, 3), strides=(2, 2), padding='valid', activation='relu')
-decoder_mean_squash = Conv2D(num_channels, kernel_size=2, padding='valid', activation='sigmoid')
+decoder_deconv3_upsamp = Conv2DTranspose(params.filters, kernel_size=(3, 3), strides=(2, 2), padding='valid', activation='relu')
+decoder_mean_squash = Conv2D(params.num_channels, kernel_size=2, padding='valid', activation='sigmoid')
 
 #hidden_decoded = decoder_hidden(z)
 up_decoded = decoder_upsample(z)
@@ -141,12 +128,12 @@ x_decoded_mean_squash = decoder_mean_squash(x_decoded_relu)
 vae = Model(x, x_decoded_mean_squash)
 
 #Loss function
-xent_loss = params['image_size'] * params['image_size'] * metrics.binary_crossentropy(K.flatten(x), K.flatten(x_decoded_mean_squash))
+xent_loss = params.image_size * params.image_size * metrics.binary_crossentropy(K.flatten(x), K.flatten(x_decoded_mean_squash))
 kl_loss = -0.5 * K.sum(1 + z_stddev - K.square(z_mean) - K.exp(z_stddev), axis=-1)
 vae_loss = K.mean(xent_loss + kl_loss)
 vae.add_loss(vae_loss)
 
-optimizer = optimizers.Adam(lr=params['learning_rate'])
+optimizer = optimizers.Adam(lr=params.learning_rate)
 vae.compile(optimizer=optimizer)
 vae.summary()
 
@@ -154,7 +141,7 @@ vae.summary()
 encoder = Model(x, z_mean)
 
 #model for generating image from latent vector
-decoder_input = Input(shape=(params['n_z'],))
+decoder_input = Input(shape=(params.latent_size,))
 #_hidden_decoded = decoder_hidden(decoder_input)
 _up_decoded = decoder_upsample(decoder_input)
 _reshape_decoded = decoder_reshape(_up_decoded)
@@ -194,10 +181,10 @@ if args.reconstruct:
     print('Model restored')
 
     batch_train, _ = train_generator[0]
-    reconstructed_train = vae.predict(batch_train, batch_size=params['batch_size'], verbose=1)
+    reconstructed_train = vae.predict(batch_train, batch_size=params.batch_size, verbose=1)
 
     batch_test, _ = test_generator[0]
-    reconstructed_test = vae.predict(batch_test, batch_size=params['batch_size'], verbose=1)
+    reconstructed_test = vae.predict(batch_test, batch_size=params.batch_size, verbose=1)
 
     plt.figure(figsize=(6, 10))
     for i in range(5):
@@ -244,13 +231,13 @@ if args.random:
     vae.load_weights(save_path)
     print('Model restored')
 
-    z_sample = np.random.normal(size=[params['batch_size'], params['n_z']])
-    x_decoded = generator.predict(z_sample, batch_size=params['batch_size'], verbose=1)
+    z_sample = np.random.normal(size=[params.batch_size, params.latent_size])
+    x_decoded = generator.predict(z_sample, batch_size=params.batch_size, verbose=1)
 
     plt.figure()
     for i in range(3):
         for j in range(3):
-            img = x_decoded[i * 3 + j].reshape(params['image_size'], params['image_size'], num_channels)
+            img = x_decoded[i * 3 + j].reshape(params.image_size, params.image_size, num_channels)
             subplot = plt.subplot(3, 3, i * 3 + j + 1)
             if args.grayscale:
                 img = img[:,:,0]
@@ -264,19 +251,19 @@ if args.manifold:
     print('Model restored')
 
     n = 15
-    figure = np.zeros((n * params['image_size'], n * params['image_size'], num_channels))
+    figure = np.zeros((n * params.image_size, n * params.image_size, num_channels))
     grid_x = norm.ppf(np.linspace(0.05, 0.95, n))
     grid_y = norm.ppf(np.linspace(0.05, 0.95, n))
 
-    z_sample = np.zeros(shape=[n*n, params['n_z']])
+    z_sample = np.zeros(shape=[n*n, params.latent_size])
     for i, yi in enumerate(grid_x):
         for j, xi in enumerate(grid_y):
             z_sample[i * n + j] = [xi, yi]
     x_decoded = generator.predict(z_sample, batch_size=n*n, verbose=1)
     for i in range(n):
         for j in range(n):
-            img = x_decoded[i * n + j].reshape(params['image_size'], params['image_size'], num_channels)
-            figure[i * params['image_size'] : (i + 1) * params['image_size'], j * params['image_size'] : (j + 1) * params['image_size']] = img
+            img = x_decoded[i * n + j].reshape(params.image_size, params.image_size, params.num_channels)
+            figure[i * params.image_size : (i + 1) * params.image_size, j * params.image_size : (j + 1) * params.image_size] = img
     plt.figure(figsize=(10, 10))
     if args.grayscale:
         figure = figure[:,:,0]
@@ -295,7 +282,7 @@ if args.plot:
     plt.figure()
     for i in range(num_batches):
         X, _ = test_generator[i]
-        y = labels[i * params['batch_size'] : i * params['batch_size'] + params['batch_size']]
+        y = labels[i * params.batch_size : i * params.batch_size + params.batch_size]
         z = encoder.predict(X, verbose=0)
         plt.scatter(z[:, 0], z[:, 1], c=y, s=3, cmap=cm.afmhot)
     plt.xlim(-5, 5)
@@ -314,7 +301,7 @@ def compute_means(filename):
     for i, z in enumerate(encoded):
         labeled_dict[labels[i]].append(z)
 
-    class_means = np.zeros((num_classes, params['n_z']))
+    class_means = np.zeros((num_classes, params.latent_size))
     for i in range(num_classes):
         if len(labeled_dict[i]) > 0:
             class_means[i] = np.mean(labeled_dict[i], axis=0)
@@ -384,11 +371,11 @@ if args.entailment:
 
     class_indices = train_generator.get_indices()
     class_means = pickle.load(f)
-    z = np.zeros((params['batch_size'], params['n_z']))
+    z = np.zeros((params.batch_size, params.latent_size))
     labels = ['Boots', 'Sandals', 'Shoes', 'Slippers']
     for i, label in enumerate(labels):
         z[i] = class_means[class_indices[label]]
-    reconstructed = generator.predict(z, batch_size=params['batch_size'], verbose=1)
+    reconstructed = generator.predict(z, batch_size=params.batch_size, verbose=1)
 
     for i in range(len(labels)):
         for j in range(i, len(labels)):
