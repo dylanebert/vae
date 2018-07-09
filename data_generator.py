@@ -5,7 +5,7 @@ import sys
 from keras.preprocessing.image import ImageDataGenerator
 
 class DataGenerator(keras.utils.Sequence):
-    def __init__(self, directory, params, one_hot=False, grayscale=False):
+    def __init__(self, directory, params, one_hot=False):
         if not os.path.exists(directory):
             sys.exit('Please create and populate data directory {0}'.format(directory))
         datagen = ImageDataGenerator(rescale=1./255)
@@ -16,11 +16,7 @@ class DataGenerator(keras.utils.Sequence):
             self.class_mode = 'categorical'
         else:
             self.class_mode = 'sparse'
-        if grayscale:
-            self.color_mode = 'grayscale'
-        else:
-            self.color_mode = 'rgb'
-        self.generator = datagen.flow_from_directory(directory, target_size=(params.image_size, params.image_size), color_mode=self.color_mode, batch_size=self.batch_size, shuffle=True, class_mode=self.class_mode)
+        self.generator = datagen.flow_from_directory(directory, target_size=(params.image_size, params.image_size), color_mode='rgb', batch_size=self.batch_size, shuffle=True, class_mode=self.class_mode)
         self.labels = []
         self.labels_cached = False
         self.labels_cached_list = [False] * len(self)
