@@ -110,6 +110,7 @@ if __name__ == '__main__':
     parser.add_argument('--nz', help='override latent dimension hyperparameter', type=int, default=0)
     parser.add_argument('--early_stopping', help='stop when validation loss stops improving', action='store_true')
     parser.add_argument('--train', help='train for given number of epochs', type=int, default=0)
+    parser.add_argument('--compute_means', help='compute class means and save', action='store_true')
     parser.add_argument('--validate', help='report loss on validation data', action='store_true')
     args = parser.parse_args()
 
@@ -169,3 +170,27 @@ if __name__ == '__main__':
             print('Evaluating final weights')
             loss = vae.evaluate_generator(generator=dev_generator, verbose=1)
             print('Final weights validation loss: {0}'.format(loss))
+
+    if args.compute_means:
+        print('Encoding input')
+        z = network.encoder.predict_generator(train_generator, verbose=1)
+
+        print('Grouping vectors by class label')
+        z_grouped = {}
+        for i in range(num_classes):
+            z_grouped[i] = []
+        for i in range(len(train_generator.generator)):
+            _, y = train_generator.generator[i]
+            for j, class_index in enumerate(y):
+                z_grouped[class_index].append(z[params.batch_size * i + j])
+
+        class_names = train_generator.class_names()
+        class_means = np.zeros((num_classes, params.latent_size))
+        for i in range(num_classes):
+            if len(z_grouped[i]) > 0:
+                class_means[i] = np.mean(z_grouped[i], axis=0)
+            print('{0}: {1}'.format(class_names[i], class_means[i]))
+
+        with open(means_path, 'wb') as f:
+            pickle.dump(class_means, f)
+        print('Successfully wrote means to file: {0}'.format(means_path))

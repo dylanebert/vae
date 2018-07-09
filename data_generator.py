@@ -17,22 +17,12 @@ class DataGenerator(keras.utils.Sequence):
         else:
             self.class_mode = 'sparse'
         self.generator = datagen.flow_from_directory(directory, target_size=(params.image_size, params.image_size), color_mode='rgb', batch_size=self.batch_size, shuffle=True, class_mode=self.class_mode)
-        self.labels = []
-        self.labels_cached = False
-        self.labels_cached_list = [False] * len(self)
 
     def __len__(self):
         return len(self.generator)
 
     def __getitem__(self, index):
         X, y = self.generator[index]
-
-        if not self.labels_cached:
-            for label in y:
-                self.labels.append(label)
-            self.labels_cached_list[index] = True
-            if False not in self.labels_cached_list:
-                self.labels_cached = True
 
         if self.one_hot:
             return [X, y], []
@@ -41,17 +31,6 @@ class DataGenerator(keras.utils.Sequence):
 
     def num_classes(self):
         return len(self.generator.class_indices)
-
-    def get_labels(self):
-        if not self.labels_cached:
-            for i in range(len(self)):
-                print('Retrieving labels {0} of {1}'.format(i+1, len(self)), end='\r')
-                _, _ = self[i]
-            print('')
-        else:
-            print('Found cached labels')
-
-        return self.labels
 
     def class_names(self):
         return {v: k for k, v in self.generator.class_indices.items()}
