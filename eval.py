@@ -5,6 +5,7 @@ from keras import backend as K
 import os
 import argparse
 from vae import VAE
+from one_hot import OneHot
 from params import Params
 import pickle
 from matplotlib import pyplot as plt
@@ -16,11 +17,13 @@ from scipy.stats import entropy
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--one_hot', help='use the one_hot model', action='store_true')
 parser.add_argument('--data_path', help='override directory for data', type=str, default='')
 parser.add_argument('--save_path', help='override path to save files', type=str, default='')
 parser.add_argument('--nz', help='override latent dimension hyperparameter', type=int, default=0)
 parser.add_argument('--early_stopping', help='use early stopping weights over final weights', action='store_true')
 parser.add_argument('--reconstruct', help='reconstruct training images', action='store_true')
+parser.add_argument('--display_means', help='display visual representation of each class', action='store_true')
 parser.add_argument('--sim', help='print class similarity metrics', action='store_true')
 parser.add_argument('--img2txt', help='evaluate image to text (image tagging)', action='store_true')
 args = parser.parse_args()
@@ -34,7 +37,10 @@ else:
 
 if args.save_path == '':
     print('Using default save path model/')
-    save_directory = 'model/'
+    if args.one_hot:
+        save_directory = 'model/one_hot/'
+    else:
+        save_directory = 'model/'
 else:
     print('Overriding save path to {0}'.format(args.save_path))
     if not os.path.exists(args.save_path):
@@ -47,16 +53,19 @@ else:
 means_path = save_directory + 'means.p'
 
 params = Params()
-train_generator = DataGenerator(data_path + 'train/', params)
-dev_generator = DataGenerator(data_path + 'dev/', params)
-test_generator = DataGenerator(data_path + 'test/', params)
+train_generator = DataGenerator(data_path + 'train/', params, args.one_hot)
+dev_generator = DataGenerator(data_path + 'dev/', params, args.one_hot)
+test_generator = DataGenerator(data_path + 'test/', params, args.one_hot)
 num_classes = train_generator.num_classes()
 
 if not args.nz == 0:
     params.latent_size = args.nz
     print('Overriding latent dimension to size {0}'.format(args.nz))
 
-network = VAE(params)
+if args.one_hot:
+    network = OneHot(params, num_classes)
+else:
+    network = VAE(params)
 vae = network.vae
 
 if args.reconstruct:
@@ -68,7 +77,10 @@ if args.reconstruct:
 
     plt.figure(figsize=(6, 10))
     for i in range(5):
-        x_input = batch[i]
+        if args.one_hot:
+            x_input = batch[0][i]
+        else:
+            x_input = batch[i]
         subplot = plt.subplot(5, 2, 2 * i + 1)
         subplot.imshow(x_input)
         if i == 0:
@@ -82,6 +94,25 @@ if args.reconstruct:
     plt.suptitle('Training data reconstructions')
     plt.show()
 
+if args.display_means:
+    vae.load_weights(save_path)
+    print('Model restored')
+
+    class_means = pickle.load(open(means_path, 'rb'))
+    class_names = train_generator.class_names()
+
+    print('Decoding class means')
+    decoded = network.generator.predict(class_means, verbose=1)
+
+    plt.figure(figsize=(6, 10))
+    for i in range(num_classes):
+        subplot = plt.subplot(num_classes, 1, i + 1)
+        subplot.imshow(decoded[i])
+        plt.title(class_names[i])
+        plt.axis('off')
+    plt.suptitle('Class representations')
+    plt.show()
+
 if args.sim:
     vae.load_weights(save_path)
     print('Model restored')
@@ -90,7 +121,7 @@ if args.sim:
     class_names = train_generator.class_names()
 
     print('Decoding class means')
-    decoded = network.generator.predict(class_means, batch_size=params.batch_size, verbose=1)
+    decoded = network.generator.predict(class_means, verbose=1)
 
     table = []
     for i in range(num_classes):
