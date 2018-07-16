@@ -21,6 +21,7 @@ parser.add_argument('--nz', help='override latent dimension hyperparameter', typ
 parser.add_argument('--early_stopping', help='use early stopping weights over final weights', action='store_true')
 parser.add_argument('--reconstruct', help='reconstruct training images', action='store_true')
 parser.add_argument('--sim', help='print class similarity metrics', action='store_true')
+parser.add_argument('--img2txt', help='evaluate image to text (image tagging)', action='store_true')
 args = parser.parse_args()
 
 if args.data_path == '':
@@ -84,14 +85,7 @@ if args.sim:
     vae.load_weights(save_path)
     print('Model restored')
 
-    filename = means_path
-    try:
-        f = open(filename, 'rb')
-    except:
-        compute_means(filename)
-        f = open(filename, 'rb')
-
-    class_means = pickle.load(f)
+    class_means = pickle.load(open(means_path, 'rb'))
     class_names = train_generator.class_names()
 
     print('Decoding class means')
@@ -106,3 +100,14 @@ if args.sim:
             kl = np.sum(entropy(decoded[i], decoded[j], 2))
             table.append([class_names[i], class_names[j], z_dist, img_dist, cos, kl])
     print(tabulate(table, headers=['class a', 'class b', 'z_dist', 'img_dist', 'cossim', 'kl-div']))
+
+if args.img2txt:
+    vae.load_weights(save_path)
+    print('Model restored')
+
+    class_means = pickle.load(open(means_path, 'rb'))
+    class_names = train_generator.class_names()
+
+    z = network.encoder.predict_generator(test_generator, batch_size=params.batch_size, verbose=1)
+
+    print(z.shape)
