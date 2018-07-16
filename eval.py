@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 from data_generator import DataGenerator
 from tabulate import tabulate
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import confusion_matrix
 from scipy.stats import entropy
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -108,6 +109,31 @@ if args.img2txt:
     class_means = pickle.load(open(means_path, 'rb'))
     class_names = train_generator.class_names()
 
-    z = network.encoder.predict_generator(test_generator, batch_size=params.batch_size, verbose=1)
+    z = network.encoder.predict_generator(test_generator, verbose=1)
+    correct = np.zeros((z.shape[0]))
+    for i in range(len(test_generator.generator)):
+        _, y = test_generator.generator[i]
+        for j, label in enumerate(y):
+            correct[i * params.batch_size + j] = label
 
-    print(z.shape)
+    predicted = np.zeros((z.shape[0]))
+    for i, z_i in enumerate(z):
+        dists = [np.linalg.norm(class_mean - z_i) for class_mean in class_means]
+        min_dist = np.argmin(dists)
+        predicted[i] = min_dist
+
+    cm = confusion_matrix(correct, predicted)
+    print('Confusion matrix:')
+    print(cm)
+
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.title('Confusion matrix')
+    plt.colorbar()
+    tick_marks = np.arange(num_classes)
+    plt.xticks(tick_marks, class_names.values(), rotation=45)
+    plt.yticks(tick_marks, class_names.values())
+    plt.tight_layout()
+    plt.xlabel('True label')
+    plt.ylabel('Predicted label')
+    plt.show()
