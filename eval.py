@@ -3,6 +3,7 @@ import tensorflow as tf
 import keras
 from keras import backend as K
 import os
+import sys
 import argparse
 from vae import VAE
 from one_hot import OneHot
@@ -26,6 +27,9 @@ parser.add_argument('--reconstruct', help='reconstruct training images', action=
 parser.add_argument('--display_means', help='display visual representation of each class', action='store_true')
 parser.add_argument('--sim', help='print class similarity metrics', action='store_true')
 parser.add_argument('--img2txt', help='evaluate image to text (image tagging)', action='store_true')
+if len(sys.argv) == 1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
 args = parser.parse_args()
 
 if args.data_path == '':

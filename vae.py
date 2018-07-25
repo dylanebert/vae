@@ -8,11 +8,12 @@ from keras import optimizers
 from keras import backend as K
 from keras import metrics
 from keras.preprocessing.image import ImageDataGenerator
-import callbacks
+from callbacks import Histories
 import numpy as np
 import json
 import argparse
 import os
+import sys
 import pickle
 from scipy.stats import norm, multivariate_normal
 from data_generator import DataGenerator
@@ -25,7 +26,6 @@ class VAE:
         image_size = params.image_size
         num_channels = params.num_channels
         filters = params.filters
-        kernel_size = params.kernel_size
         latent_size = params.latent_size
         batch_size = params.batch_size
         learning_rate = params.learning_rate
@@ -36,10 +36,9 @@ class VAE:
         #encoder
         conv1 = Conv2D(num_channels, kernel_size=(2, 2), padding='same', activation='relu')(x)
         conv2 = Conv2D(filters, kernel_size=(2, 2), padding='same', activation='relu', strides=(2, 2))(conv1)
-        conv3 = Conv2D(filters, kernel_size=kernel_size, padding='same', activation='relu', strides=1)(conv2)
-        conv4 = Conv2D(filters, kernel_size=kernel_size, padding='same', activation='relu', strides=1)(conv3)
+        conv3 = Conv2D(filters, kernel_size=3, padding='same', activation='relu', strides=1)(conv2)
+        conv4 = Conv2D(filters, kernel_size=3, padding='same', activation='relu', strides=1)(conv3)
         flat = Flatten()(conv4)
-        #hidden = Dense(hidden_size, activation='relu')(flat)
 
         #latent space Z (mean and std)
         z_mean = Dense(latent_size)(flat)
@@ -54,21 +53,19 @@ class VAE:
         z = Lambda(sampling, output_shape=(latent_size,))([z_mean, z_stddev])
 
         #decoder
-        #decoder_hidden = Dense(hidden_size, activation='relu')
         decoder_upsample = Dense(filters * (image_size // 2) * (image_size // 2), activation='relu')
 
         output_shape = (batch_size, image_size // 2, image_size // 2, filters)
 
         decoder_reshape = Reshape(output_shape[1:])
-        decoder_deconv1 = Conv2DTranspose(filters, kernel_size=kernel_size, padding='same', strides=1, activation='relu')
-        decoder_deconv2 = Conv2DTranspose(filters, kernel_size=kernel_size, padding='same', strides=1, activation='relu')
+        decoder_deconv1 = Conv2DTranspose(filters, kernel_size=3, padding='same', strides=1, activation='relu')
+        decoder_deconv2 = Conv2DTranspose(filters, kernel_size=3, padding='same', strides=1, activation='relu')
 
         output_shape = (batch_size, filters, image_size + 1, image_size + 1)
 
         decoder_deconv3_upsamp = Conv2DTranspose(filters, kernel_size=(3, 3), strides=(2, 2), padding='valid', activation='relu')
         decoder_mean_squash = Conv2D(num_channels, kernel_size=2, padding='valid', activation='sigmoid')
 
-        #hidden_decoded = decoder_hidden(z)
         up_decoded = decoder_upsample(z)
         reshape_decoded = decoder_reshape(up_decoded)
         deconv1_decoded = decoder_deconv1(reshape_decoded)
@@ -94,7 +91,6 @@ class VAE:
 
         #model for generating image from latent vector
         decoder_input = Input(shape=(latent_size,))
-        #_hidden_decoded = decoder_hidden(decoder_input)
         _up_decoded = decoder_upsample(decoder_input)
         _reshape_decoded = decoder_reshape(_up_decoded)
         _deconv1_decoded = decoder_deconv1(_reshape_decoded)
@@ -109,9 +105,11 @@ if __name__ == '__main__':
     parser.add_argument('--save_path', help='override path to save files', type=str, default='')
     parser.add_argument('--nz', help='override latent dimension hyperparameter', type=int, default=0)
     parser.add_argument('--early_stopping', help='stop when validation loss stops improving', action='store_true')
-    parser.add_argument('--train', help='train for given number of epochs', type=int, default=0)
-    parser.add_argument('--compute_means', help='compute class means and save', action='store_true')
+    parser.add_argument('--train', help='train for given number of epochs, compute and store class means', type=int, default=0)
     parser.add_argument('--validate', help='report loss on validation data', action='store_true')
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
     args = parser.parse_args()
 
     if args.data_path == '':
@@ -148,8 +146,8 @@ if __name__ == '__main__':
     network = VAE(params)
     vae = network.vae
 
-    if args.train:
-        base_callbacks = callbacks.Histories()
+    def train():
+        base_callbacks = Histories()
         tb_callback = keras.callbacks.TensorBoard(log_dir='logs/')
         checkpoint_callback = keras.callbacks.ModelCheckpoint(save_directory + 'weights_best.h5', save_best_only=True, verbose=1)
         callbacks = [base_callbacks, tb_callback, checkpoint_callback]
@@ -160,18 +158,7 @@ if __name__ == '__main__':
         vae.save_weights(save_directory + 'weights_final.h5')
         print('Saved final weights')
 
-    if args.validate:
-        vae.load_weights(save_directory + 'weights_best.h5')
-        print('Evaluating best weights')
-        loss = vae.evaluate_generator(generator=dev_generator, verbose=1)
-        print('Best weights validation loss: {0}'.format(loss))
-        if os.path.exists(save_directory + 'weights_final.h5'):
-            vae.load_weights(save_directory + 'weights_final.h5')
-            print('Evaluating final weights')
-            loss = vae.evaluate_generator(generator=dev_generator, verbose=1)
-            print('Final weights validation loss: {0}'.format(loss))
-
-    if args.compute_means:
+    def compute_means():
         print('Encoding input')
         z = network.encoder.predict_generator(train_generator, verbose=1)
 
@@ -194,3 +181,18 @@ if __name__ == '__main__':
         with open(means_path, 'wb') as f:
             pickle.dump(class_means, f)
         print('Successfully wrote means to file: {0}'.format(means_path))
+
+    if args.train:
+        train()
+        compute_means()
+
+    if args.validate:
+        vae.load_weights(save_directory + 'weights_best.h5')
+        print('Evaluating best weights')
+        loss = vae.evaluate_generator(generator=dev_generator, verbose=1)
+        print('Best weights validation loss: {0}'.format(loss))
+        if os.path.exists(save_directory + 'weights_final.h5'):
+            vae.load_weights(save_directory + 'weights_final.h5')
+            print('Evaluating final weights')
+            loss = vae.evaluate_generator(generator=dev_generator, verbose=1)
+            print('Final weights validation loss: {0}'.format(loss))
