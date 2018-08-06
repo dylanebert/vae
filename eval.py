@@ -15,6 +15,7 @@ from tabulate import tabulate
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import confusion_matrix
 from scipy.stats import entropy
+import time
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 parser = argparse.ArgumentParser()
@@ -128,14 +129,18 @@ if args.sim:
     decoded = network.generator.predict(class_means, verbose=1)
 
     table = []
-    for i in range(num_classes):
+    for i in range(1):#num_classes):
         for j in range(i + 1, num_classes):
             z_dist = np.linalg.norm(class_means[i] - class_means[j])
             img_dist = np.mean(np.absolute(decoded[i] - decoded[j]) * 255.)
             cos = cosine_similarity([class_means[i], class_means[j]])[0, 1]
             kl = np.sum(entropy(decoded[i], decoded[j], 2))
             table.append([class_names[i], class_names[j], z_dist, img_dist, cos, kl])
-    print(tabulate(table, headers=['class a', 'class b', 'z_dist', 'img_dist', 'cossim', 'kl-div']))
+    filename = 'results/{0}-sim'.format(time.time())
+    with open(filename, 'w+') as f:
+        f.write('class a, class b, z_dist, img_dist, cossim, kl-div\n')
+        for line in table:
+            f.write('{0}\n'.format(', '.join([str(elem) for elem in line])))
 
 if args.img2txt:
     vae.load_weights(save_path)

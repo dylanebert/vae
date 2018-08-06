@@ -1,11 +1,13 @@
 from shutil import copy2
 import os
 
-base_path = '/data/person_dog/'
-dir1 = '/data/person_dog_split/train/'
-dir2 = '/data/person_dog_split/dev/'
-dir3 = '/data/person_dog_split/test/'
-for dirname in os.listdir(base_path):
+base_path = '/home/dylan/data/mmid/combined_cleaned/'
+dir1 = '/home/dylan/data/mmid/combined_split/train/'
+dir2 = '/home/dylan/data/mmid/combined_split/dev/'
+dir3 = '/home/dylan/data/mmid/combined_split/test/'
+dirs = os.listdir(base_path)
+for i, dirname in enumerate(dirs):
+    print('{0} of {1}'.format(i + 1, len(dirs)), end='\r')
     os.makedirs(dir1 + dirname)
     os.makedirs(dir2 + dirname)
     os.makedirs(dir3 + dirname)
