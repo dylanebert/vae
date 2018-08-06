@@ -129,7 +129,7 @@ if args.sim:
     decoded = network.generator.predict(class_means, verbose=1)
 
     table = []
-    for i in range(1):#num_classes):
+    for i in range(num_classes):
         for j in range(i + 1, num_classes):
             z_dist = np.linalg.norm(class_means[i] - class_means[j])
             img_dist = np.mean(np.absolute(decoded[i] - decoded[j]) * 255.)
