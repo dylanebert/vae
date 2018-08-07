@@ -128,8 +128,10 @@ if args.sim:
     print('Decoding class means')
     decoded = network.generator.predict(class_means, verbose=1)
 
+    print('Computing class similarities:')
     table = []
     for i in range(num_classes):
+        print('{0} of {1}'.format(i + 1, num_classes))
         for j in range(i + 1, num_classes):
             z_dist = np.linalg.norm(class_means[i] - class_means[j])
             img_dist = np.mean(np.absolute(decoded[i] - decoded[j]) * 255.)
