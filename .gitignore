@@ -2,3 +2,5 @@ data/*
 model/*
 logs/*
 test/*
+results/*
+
