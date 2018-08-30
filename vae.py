@@ -166,17 +166,20 @@ if __name__ == '__main__':
         z_grouped = {}
         for i in range(num_classes):
             z_grouped[i] = []
-        for i in range(len(train_generator.generator)):
+        n = len(train_generator.generator)
+        for i in range(n):
+            print('{0} of {1}'.format(i+1, n), end='\r')
             _, y = train_generator.generator[i]
             for j, class_index in enumerate(y):
                 z_grouped[class_index].append(z[params.batch_size * i + j])
 
         class_names = train_generator.class_names()
         class_means = np.zeros((num_classes, params.latent_size))
+        print('Computing class means')
         for i in range(num_classes):
+            print('{0} of {1}'.format(i+1, num_classes), end='\r')
             if len(z_grouped[i]) > 0:
                 class_means[i] = np.mean(z_grouped[i], axis=0)
-            print('{0}: {1}'.format(class_names[i], class_means[i]))
 
         with open(means_path, 'wb') as f:
             pickle.dump(class_means, f)

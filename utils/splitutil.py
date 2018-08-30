@@ -1,10 +1,10 @@
 from shutil import copy2
 import os
 
-base_path = '/home/dylan/data/mmid/combined_cleaned/'
-dir1 = '/home/dylan/data/mmid/combined_split/train/'
-dir2 = '/home/dylan/data/mmid/combined_split/dev/'
-dir3 = '/home/dylan/data/mmid/combined_split/test/'
+base_path = '/data/mmid_concrete_nouns_cleaned/'
+dir1 = '/data/mmid_concrete_nouns_split/train/'
+dir2 = '/data/mmid_concrete_nouns_split/dev/'
+dir3 = '/data/mmid_concrete_nouns_split/test/'
 dirs = os.listdir(base_path)
 for i, dirname in enumerate(dirs):
     print('{0} of {1}'.format(i + 1, len(dirs)), end='\r')
