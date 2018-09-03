@@ -7,7 +7,6 @@ from keras.models import model_from_json
 from keras import optimizers
 from keras import backend as K
 from keras import metrics
-from keras.preprocessing.image import ImageDataGenerator
 from callbacks import Histories
 import numpy as np
 import json

@@ -3,8 +3,8 @@ import os
 import imghdr
 import numpy as np
 
-data_path = '/data/mmid_concrete_nouns/'
-cleaned_path = '/data/mmid_concrete_nouns_cleaned/'
+data_path = '/data/mmid/'
+cleaned_path = '/data/mmid_cleaned/'
 
 max_size = 512
 
