@@ -1,4 +1,4 @@
-# Variational Autoencoder for UTZappos50K Shoe Dataset
+# Variational Autoencoder for language grounding
 
 ## To run:
 - Download and install prerequisites [Tensorflow](https://www.tensorflow.org/install/) and [Keras](https://keras.io/)
