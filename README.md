@@ -9,8 +9,7 @@
 ## Architecture:
 - **vae.py** contains everything for the actual autoencoder, using command line arguments for different tasks
   - By default, train results are saved in model/, which is restored for all inference tasks. This can be changed with the --save_path argument.
-- **data_generator.py** is a wrapper for Keras data generators.
-  - be sure to change image size, channels, and classes if using a different dataset
+- **data_generator.py** is a wrapper for Keras data generators
 - **params.py** contains the hyperparameters used by vae.py as follows:
   - image_size: square size of the input images (e.g. 28 for 28x28 images)
   - num_channels: number of input image channels (1 for grayscale, 3 for rgb)
