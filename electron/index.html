@@ -2,26 +2,101 @@
 <html>
 <head>
     <meta charset="UTF-8">
-	<title>HSKT</title>
+	<title>vae</title>
 	<link rel="shortcut icon" href="">
 	<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
 </head>
+<style>
+html, body {
+    height: 100%;
+    font-family: 'Open Sans', sans-serif;
+}
+#header {
+    height: 25%;
+    min-height: 100px;
+    background-color: #4bcffa;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+}
+#header h1 {
+    position: absolute;
+    font-size: 10em;
+    bottom: 10px;
+}
+#body {
+    height: 50%;
+    min-height: 300px;
+    padding-top: 50px;
+}
+#footer {
+    min-height: 100px;
+    height: 25%;
+    text-align: center;
+    background-color: #0fbcf9;
+    position: relative;
+    overflow: hidden;
+    color: white;
+}
+#continue {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: -100px;
+    margin-top: -30px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.col-xs-2 button {
+    width: 100%;
+    overflow: hidden;
+}
+</style>
 <body>
-    <div class="container">
-        <button type="button" class="btn btn-success" id="test">Test</button>
+    <div class="container-fluid" id="header">
+        <h1>Select properties</h1>
+    </div>
+    <div class="container" id="body">
+        <div class="form-group">
+            <div class="row">
+                <div class="col-sm-12">
+                    <label for="dataDirectory">Select data directory</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-9">
+                    <input type="text" class="form-control" id="dataDirectory" placeholder="data/">
+                </div>
+                <div class="col-xs-3">
+                    <button type="button" id="selectDataDirectory" class="btn btn-default">Browse</button>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12">
+                    <label for="saveDirectory">Select save directory</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-9">
+                    <input type="text" class="form-control" id="saveDirectory" placeholder="model/">
+                </div>
+                <div class="col-xs-3">
+                    <button type="button" id="selectSaveDirectory" class="btn btn-default">Browse</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" id="footer">
+        <h2 type="button" id="continue">Continue</h2>
     </div>
 </body>
-<script>
-$(document).ready(function() {
-    $('#test').click(function() {
-        $.get('http://localhost:5000', function(data) {
-            console.log(data);
-        });
-    });
-});
-</script>
+<script src="eval.js"></script>
 </html>
