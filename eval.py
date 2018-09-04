@@ -110,8 +110,9 @@ if args.display_means:
     decoded = network.generator.predict(class_means, verbose=1)
 
     plt.figure(figsize=(6, 10))
-    for i in range(num_classes):
-        subplot = plt.subplot(num_classes, 1, i + 1)
+    n = min(5, num_classes)
+    for i in range(n):
+        subplot = plt.subplot(n, 1, i + 1)
         subplot.imshow(decoded[i])
         plt.title(class_names[i])
         plt.axis('off')
