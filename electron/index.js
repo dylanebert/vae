@@ -1,32 +1,44 @@
-const electron = require('electron');
-const app = electron.app;
-const BrowserWindow = electron.BrowserWindow;
+const {remote} = require('electron');
+const {dialog} = remote;
 
-require('electron-reload')(__dirname)
+$(document).ready(function() {
+    function trySkipInit() {
+        $('#loadingScreen').removeClass('hidden');
+        $.get('http://localhost:5000/init', function(data) {
+            if(data == 'success') {
+                remote.getCurrentWindow().loadURL(`file://${__dirname}/eval.html`)
+            }
+            $('#loadingScreen').addClass('hidden');
+        });
+    }
 
-let mainWindow;
+    $('#selectDataDirectory').click(function() {
+        dialog.showOpenDialog({ properties: ['openDirectory'] }, function(filename) {
+            $('#dataDirectory').val(filename);
+        });
+    });
 
-function createWindow() {
-	mainWindow = new BrowserWindow({minWidth: 1200, minHeight: 800, width: 1200, height: 800});
-	mainWindow.setMenu(null);
-	mainWindow.webContents.openDevTools();
-	mainWindow.loadURL(`file://${__dirname}/index.html`);
+    $('#selectSaveDirectory').click(function() {
+        dialog.showOpenDialog({ properties: ['openDirectory'] }, function(filename) {
+            $('#saveDirectory').val(filename);
+        });
+    });
 
-	mainWindow.on('closed', function() {
-		mainWindow = null;
-	});
-}
+    $('#properties').submit(function(e) {
+        e.preventDefault();
+        $('#err').text('');
+        $('#loadingScreen').removeClass('hidden');
+        const url = 'http://localhost:5000/init?datapath=' + $('#dataDirectory').val() +
+                    '&savepath=' + $('#saveDirectory').val() + '&latentsize=' + $('#latentSize').val();
+        $.get(url, function(data) {
+            $('#loadingScreen').addClass('hidden');
+            if(data == 'success') {
+                remote.getCurrentWindow().loadURL(`file://${__dirname}/eval.html`)
+            } else {
+                $('#err').text(data);
+            }
+        });
+    });
 
-app.on('ready', createWindow);
-
-app.on('window-all-closed', function() {
-	if(process.platform !== 'darwin') {
-		app.quit();
-	}
-});
-
-app.on('activate', function() {
-	if(mainWindow == null) {
-		createWindow();
-	}
+    trySkipInit();
 });
