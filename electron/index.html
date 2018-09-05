@@ -16,86 +16,60 @@ html, body {
     height: 100%;
     font-family: 'Open Sans', sans-serif;
 }
-#header {
-    height: 25%;
-    min-height: 100px;
-    background-color: #4bcffa;
-    color: white;
-    position: relative;
-    overflow: hidden;
-    white-space: nowrap;
-}
-#header h1 {
-    position: absolute;
-    font-size: 10em;
-    bottom: 10px;
+#title {
+    padding-bottom: 10px;
 }
 #body {
-    height: 50%;
-    min-height: 300px;
-    padding-top: 50px;
+    width: 800px;
+    height: 400px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-left: -400px;
+    margin-top: -200px;
 }
-#footer {
-    min-height: 100px;
-    height: 25%;
-    text-align: center;
-    background-color: #0fbcf9;
-    position: relative;
-    overflow: hidden;
-    color: white;
+#latentSize {
+    width: 150px;
 }
 #continue {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    margin-left: -100px;
-    margin-top: -30px;
-    text-decoration: underline;
-    cursor: pointer;
+    margin-top: 10px;
 }
 .col-xs-2 button {
     width: 100%;
-    overflow: hidden;
 }
 </style>
 <body>
-    <div class="container-fluid" id="header">
-        <h1>Select properties</h1>
-    </div>
     <div class="container" id="body">
-        <div class="form-group">
-            <div class="row">
-                <div class="col-sm-12">
-                    <label for="dataDirectory">Select data directory</label>
+        <form id="properties">
+            <h1 id="title">Select properties</h1>
+            <div class="form-group">
+                <label for="dataDirectory">Select data directory</label>
+                <div class="row">
+                    <div class="col-xs-10">
+                        <input type="text" class="form-control" id="dataDirectory" placeholder="data/">
+                    </div>
+                    <div class="col-xs-2">
+                        <button type="button" id="selectDataDirectory" class="btn btn-default">Browse</button>
+                    </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-xs-9">
-                    <input type="text" class="form-control" id="dataDirectory" placeholder="data/">
-                </div>
-                <div class="col-xs-3">
-                    <button type="button" id="selectDataDirectory" class="btn btn-default">Browse</button>
-                </div>
-            </div>
-        </div>
-        <div class="form-group">
-            <div class="row">
-                <div class="col-xs-12">
-                    <label for="saveDirectory">Select save directory</label>
+            <div class="form-group">
+                <label for="saveDirectory">Select save directory</label>
+                <div class="row">
+                    <div class="col-xs-10">
+                        <input type="text" class="form-control" id="saveDirectory" placeholder="model/">
+                    </div>
+                    <div class="col-xs-2">
+                        <button type="button" id="selectSaveDirectory" class="btn btn-default">Browse</button>
+                    </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-xs-9">
-                    <input type="text" class="form-control" id="saveDirectory" placeholder="model/">
-                </div>
-                <div class="col-xs-3">
-                    <button type="button" id="selectSaveDirectory" class="btn btn-default">Browse</button>
-                </div>
+            <div class="form-group">
+                <label for="latentSize">Specify latent size</label>
+                <input type="number" class="form-control" id="latentSize" placeholder="300">
             </div>
-        </div>
-    </div>
-    <div class="container-fluid" id="footer">
-        <h2 type="button" id="continue">Continue</h2>
+            <button type="submit" id="continue" class="btn btn-success">Continue</button>
+        </form>
     </div>
 </body>
 <script src="eval.js"></script>

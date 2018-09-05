@@ -13,4 +13,9 @@ $(document).ready(function() {
             $('#saveDirectory').val(filename);
         });
     });
+
+    $('#properties').submit(function(e) {
+        e.preventDefault();
+        console.log('submit');
+    });
 });
