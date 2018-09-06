@@ -8,14 +8,14 @@ class DataGenerator(keras.utils.Sequence):
     def __init__(self, directory, params, one_hot=False):
         if not os.path.exists(directory):
             sys.exit('Please create and populate data directory {0}'.format(directory))
-        datagen = ImageDataGenerator(rescale=1./255)
-        self.batch_size = params.batch_size
-        self.directory = directory
-        self.one_hot = one_hot
         if one_hot:
             self.class_mode = 'categorical'
         else:
             self.class_mode = 'sparse'
+        datagen = ImageDataGenerator(rescale=1./255)
+        self.batch_size = params.batch_size
+        self.directory = directory
+        self.one_hot = one_hot
         self.generator = datagen.flow_from_directory(directory, target_size=(params.image_size, params.image_size), color_mode='rgb', batch_size=self.batch_size, shuffle=True, class_mode=self.class_mode)
 
     def __len__(self):

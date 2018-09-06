@@ -19,11 +19,15 @@ from vae import VAE
 import json
 import pickle
 import base64
+from io import BytesIO
+from PIL import Image
 app = Flask(__name__)
 
 class Properties:
-    def __init__(self, data_path, means_path, latent_size):
+    def __init__(self, data_path, weights_path, means_path, latent_size):
         self.params = Params()
+        self.weights_path = weights_path
+        self.means_path = means_path
         self.latent_size = latent_size
         self.train_generator = DataGenerator(os.path.join(data_path, 'train'), self.params)
         self.dev_generator = DataGenerator(os.path.join(data_path, 'dev'), self.params)
@@ -33,7 +37,6 @@ class Properties:
         self.class_means = pickle.load(open(means_path, 'rb'))
 
 properties = None
-network = None
 initialized = False
 
 @app.route('/')
@@ -42,7 +45,7 @@ def hello():
 
 @app.route('/init')
 def init():
-    global properties, network, initialized
+    global properties, initialized
     if initialized == True:
         return 'success'
     try:
@@ -63,13 +66,13 @@ def init():
     except:
         return 'error: invalid latent size'
     try:
-        properties = Properties(data_path, means_path, latent_size)
+        properties = Properties(data_path, weights_path, means_path, latent_size)
     except:
         return 'error: failed to create data generator'
     try:
         network = VAE(properties.params)
         network.vae.load_weights(weights_path)
-        properties.decoded = network.generator.predict(properties.class_means, verbose=1)
+        properties.class_images = network.generator.predict(properties.class_means, verbose=1)
         initialized = True
         return 'success'
     except:
@@ -83,9 +86,11 @@ def get_classes():
 def get():
     class_name = request.args.get('class')
     class_index = properties.indices[class_name]
-    img_matrix = properties.decoded[class_index]
-    img = base64.b64encode(img_matrix)
-    return img
+    img_array = properties.class_images[class_index]
+    img = Image.fromarray(np.uint8(img_array*255), 'RGB')
+    buffer = BytesIO()
+    img.save(buffer, 'PNG')
+    return 'data:image/png;base64,{0}'.format(base64.b64encode(buffer.getvalue()).decode('ascii'))
 
 if __name__ == '__main__':
     app.run()

@@ -3,19 +3,21 @@ const {remote} = require('electron');
 $(document).ready(function() {
     function initialize() {
         $('.classItem').click(function() {
-            if($(this).hasClass('active')) {
-                $(this).removeClass('active');
-            } else {
-                $.get('http://localhost:5000/get?class=' + $(this).text(), function(data) {
-                    console.log(data)
-                    $('<img>', {
-                        'src': 'data:image/png;base64,' + data,
-                        'width': '64px', 'height': '64px'
-                    }).appendTo($('#view'));
-                });
-                $(this).addClass('active');
-            }
+            var classItem = $(this);
+            if($(this).hasClass('active')) return;
+            $('.backdrop').removeClass('hidden');
+            $('#imgView').html('');
+            $.get('http://localhost:5000/get?class=' + classItem.text(), function(data) {
+                $('<img>', {
+                    'src': data,
+                    'width': '512px', 'height': '512px'
+                }).appendTo($('#imgView'));
+                $('.backdrop').addClass('hidden');
+                $('.active').removeClass('active');
+                $(classItem).addClass('active');
+            });
         });
+        $('#classList li').first().trigger('click');
     }
 
     $.get('http://localhost:5000/classes', function(data) {

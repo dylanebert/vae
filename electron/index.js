@@ -17,7 +17,7 @@ $(document).ready(function() {
         $('#loadingScreen').removeClass('hidden');
         $.get('http://localhost:5000/init', function(data) {
             if(data == 'success') {
-                //remote.getCurrentWindow().loadURL(`file://${__dirname}/eval.html`)
+                remote.getCurrentWindow().loadURL(`file://${__dirname}/eval.html`)
             }
             $('#loadingScreen').addClass('hidden');
         });
