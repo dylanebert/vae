@@ -16,15 +16,21 @@ from params import Params
 from flask import Flask, request
 from data_generator import DataGenerator
 from vae import VAE
+import json
+import pickle
+import base64
 app = Flask(__name__)
 
 class Properties:
-    def __init__(self, data_path, save_path, latent_size):
+    def __init__(self, data_path, means_path, latent_size):
         self.params = Params()
+        self.latent_size = latent_size
         self.train_generator = DataGenerator(os.path.join(data_path, 'train'), self.params)
         self.dev_generator = DataGenerator(os.path.join(data_path, 'dev'), self.params)
         self.test_generator = DataGenerator(os.path.join(data_path, 'test'), self.params)
         self.num_classes = self.train_generator.num_classes()
+        self.indices = self.train_generator.get_indices()
+        self.class_means = pickle.load(open(means_path, 'rb'))
 
 properties = None
 network = None
@@ -45,8 +51,10 @@ def init():
     except:
         return 'error: invalid data path'
     try:
-        save_path = os.path.join(request.args.get('savepath'), 'weights_best.h5')
-        assert(os.path.exists(save_path))
+        weights_path = os.path.join(request.args.get('savepath'), 'weights_best.h5')
+        means_path = os.path.join(request.args.get('savepath'), 'means.p')
+        assert(os.path.exists(weights_path))
+        assert(os.path.exists(means_path))
     except:
         return 'error: invalid save path'
     try:
@@ -55,12 +63,13 @@ def init():
     except:
         return 'error: invalid latent size'
     try:
-        properties = Properties(data_path, save_path, latent_size)
+        properties = Properties(data_path, means_path, latent_size)
     except:
         return 'error: failed to create data generator'
     try:
         network = VAE(properties.params)
-        network.vae.load_weights(save_path)
+        network.vae.load_weights(weights_path)
+        properties.decoded = network.generator.predict(properties.class_means, verbose=1)
         initialized = True
         return 'success'
     except:
@@ -68,7 +77,15 @@ def init():
 
 @app.route('/classes')
 def get_classes():
-    return ['test1', 'test2']
+    return json.dumps(list(properties.train_generator.class_names().values()))
+
+@app.route('/get')
+def get():
+    class_name = request.args.get('class')
+    class_index = properties.indices[class_name]
+    img_matrix = properties.decoded[class_index]
+    img = base64.b64encode(img_matrix)
+    return img
 
 if __name__ == '__main__':
     app.run()

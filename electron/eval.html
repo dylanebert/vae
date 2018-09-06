@@ -16,9 +16,45 @@ html, body {
     height: 100%;
     font-family: 'Open Sans', sans-serif;
 }
+#body, #body .row {
+    height: 100%;
+}
+#menu {
+    height: 100%;
+}
+#classSearch {
+    width: 100%;
+}
+#classList {
+    height: 90%;
+}
+.pre-scrollable {
+    max-height: inherit;
+}
+#view {
+    height: 100%;
+}
+#backButton {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}
 </style>
 <body>
-<h1>Hello</h1>
-</body>
+<button type="button" id="backButton" class="btn btn-primary"><span class="glyphicon glyphicon-chevron-left"></span></button>
+<div class="container" id="body">
+    <div class="row">
+        <div class="col-sm-4" id="menu">
+            <input type="text" id="classSearch" placeholder="Search for a class...">
+            <ul class="list-group pre-scrollable" id="classList">
 
+            </ul>
+        </div>
+        <div class="col-sm-8" id="view">
+
+        </div>
+    </div>
+</div>
+</body>
+<script src="eval.js"></script>
 </html>
