@@ -7,6 +7,7 @@ from keras import optimizers
 from keras import backend as K
 from keras import metrics
 from data_generator import DataGenerator
+import numpy as np
 import os
 import pickle
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -21,15 +22,12 @@ class VAE:
         self.encodings = {}
         self.class_means = {}
 
-        self.build_network(config.image_size, config.filters, config.latent_size, config.batch_size, config.learning_rate)
-        if config.trained:
-            self.vae.load_weights(config.weights_path)
-        if config.computed_encodings:
-            self.encodings = pickle.load(open(config.encodings_path, 'rb'))
-        if config.computed_means:
-            self.class_means = pickle.load(open(config.means_path, 'rb'))
+        image_size = config.image_size
+        filters = config.filters
+        latent_size = config.latent_size
+        batch_size = config.batch_size
+        learning_rate = config.learning_rate
 
-    def build_network(self, image_size, filters, latent_size, batch_size, learning_rate):
         x = Input(shape=(image_size, image_size, 3))
 
         conv1 = Conv2D(3, kernel_size=(2, 2), padding='same', activation='relu')(x)
@@ -90,6 +88,13 @@ class VAE:
         _x_reconstr = decoder_reconstr(_x_decoded_relu)
         self.generator = Model(decoder_input, _x_reconstr)
 
+        if config.trained:
+            self.vae.load_weights(config.weights_path)
+        if config.computed_encodings:
+            self.encodings = pickle.load(open(config.encodings_path, 'rb'))
+        if config.computed_means:
+            self.class_means = pickle.load(open(config.means_path, 'rb'))
+
     def build_generators(self):
         self.train_generator = DataGenerator(self.config.train_path, self.config.image_size, self.config.batch_size)
         self.dev_generator = DataGenerator(self.config.dev_path, self.config.image_size, self.config.batch_size)
@@ -113,15 +118,14 @@ class VAE:
         if not self.data_loaded:
             self.build_generators()
         z = self.encoder.predict_generator(self.train_generator, verbose=1)
-        index_class_dict = self.train_generator.generator.class_indices
+        class_index_dict = self.train_generator.generator.class_indices
+        index_class_dict = {k: v for v, k in class_index_dict.items()}
         num_classes = len(index_class_dict)
         n = len(self.train_generator)
-        self.encodings = {}
-        self.train_generator.train_mode = False
         print('Computing encodings')
         for i in range(n):
             print('{0} of {1}'.format(i+1, n), end='\r')
-            _, y = self.train_generator[i]
+            _, y = self.train_generator.generator[i]
             for j, class_index in enumerate(y):
                 class_name = index_class_dict[class_index]
                 if class_name not in self.encodings:
