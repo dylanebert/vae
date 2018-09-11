@@ -3,47 +3,44 @@ import keras
 from keras.layers import Input, Dense, Lambda, Flatten, Reshape
 from keras.layers import Conv2D, Conv2DTranspose
 from keras.models import Model
-from keras.models import model_from_json
 from keras import optimizers
 from keras import backend as K
 from keras import metrics
-from callbacks import Histories
-import numpy as np
-import json
-import argparse
-import os
-import sys
-import pickle
-from scipy.stats import norm, multivariate_normal
 from data_generator import DataGenerator
-from sklearn.metrics import confusion_matrix
-from params import Params
+import os
+import pickle
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class VAE:
-    def __init__(self, params):
-        image_size = params.image_size
-        num_channels = params.num_channels
-        filters = params.filters
-        latent_size = params.latent_size
-        batch_size = params.batch_size
-        learning_rate = params.learning_rate
+    def __init__(self, config):
+        self.config = config
+        self.train_generator = None
+        self.dev_generator = None
+        self.test_generator = None
+        self.data_loaded = False
+        self.encodings = {}
+        self.class_means = {}
 
-        input_shape = [image_size, image_size, num_channels]
-        x = Input(shape=input_shape)
+        self.build_network(config.image_size, config.filters, config.latent_size, config.batch_size, config.learning_rate)
+        if config.trained:
+            self.vae.load_weights(config.weights_path)
+        if config.computed_encodings:
+            self.encodings = pickle.load(open(config.encodings_path, 'rb'))
+        if config.computed_means:
+            self.class_means = pickle.load(open(config.means_path, 'rb'))
 
-        #encoder
-        conv1 = Conv2D(num_channels, kernel_size=(2, 2), padding='same', activation='relu')(x)
+    def build_network(self, image_size, filters, latent_size, batch_size, learning_rate):
+        x = Input(shape=(image_size, image_size, 3))
+
+        conv1 = Conv2D(3, kernel_size=(2, 2), padding='same', activation='relu')(x)
         conv2 = Conv2D(filters, kernel_size=(2, 2), padding='same', activation='relu', strides=(2, 2))(conv1)
         conv3 = Conv2D(filters, kernel_size=3, padding='same', activation='relu', strides=1)(conv2)
         conv4 = Conv2D(filters, kernel_size=3, padding='same', activation='relu', strides=1)(conv3)
         flat = Flatten()(conv4)
 
-        #latent space Z (mean and std)
         z_mean = Dense(latent_size)(flat)
         z_stddev = Dense(latent_size)(flat)
 
-        #random sampling from Z
         def sampling(args):
             z_mean, z_stddev = args
             epsilon = K.random_normal(shape=(K.shape(z_mean)[0], latent_size), mean=0., stddev=1.0)
@@ -51,7 +48,6 @@ class VAE:
 
         z = Lambda(sampling, output_shape=(latent_size,))([z_mean, z_stddev])
 
-        #decoder
         decoder_upsample = Dense(filters * (image_size // 2) * (image_size // 2), activation='relu')
 
         output_shape = (batch_size, image_size // 2, image_size // 2, filters)
@@ -63,20 +59,18 @@ class VAE:
         output_shape = (batch_size, filters, image_size + 1, image_size + 1)
 
         decoder_deconv3_upsamp = Conv2DTranspose(filters, kernel_size=(3, 3), strides=(2, 2), padding='valid', activation='relu')
-        decoder_mean_squash = Conv2D(num_channels, kernel_size=2, padding='valid', activation='sigmoid')
+        decoder_reconstr = Conv2D(3, kernel_size=2, padding='valid', activation='sigmoid')
 
         up_decoded = decoder_upsample(z)
         reshape_decoded = decoder_reshape(up_decoded)
         deconv1_decoded = decoder_deconv1(reshape_decoded)
         deconv2_decoded = decoder_deconv2(deconv1_decoded)
         x_decoded_relu = decoder_deconv3_upsamp(deconv2_decoded)
-        x_decoded_mean_squash = decoder_mean_squash(x_decoded_relu)
+        x_reconstr = decoder_reconstr(x_decoded_relu)
 
-        #Model for full vae
-        self.vae = Model(x, x_decoded_mean_squash)
+        self.vae = Model(x, x_reconstr)
 
-        #Loss function
-        xent_loss = image_size * image_size * metrics.binary_crossentropy(K.flatten(x), K.flatten(x_decoded_mean_squash))
+        xent_loss = image_size * image_size * metrics.binary_crossentropy(K.flatten(x), K.flatten(x_reconstr))
         kl_loss = -0.5 * K.sum(1 + z_stddev - K.square(z_mean) - K.exp(z_stddev), axis=-1)
         vae_loss = K.mean(xent_loss + kl_loss)
         self.vae.add_loss(vae_loss)
@@ -85,116 +79,63 @@ class VAE:
         self.vae.compile(optimizer=optimizer)
         self.vae.summary()
 
-        #model to project input onto latent space
         self.encoder = Model(x, z_mean)
 
-        #model for generating image from latent vector
         decoder_input = Input(shape=(latent_size,))
         _up_decoded = decoder_upsample(decoder_input)
         _reshape_decoded = decoder_reshape(_up_decoded)
         _deconv1_decoded = decoder_deconv1(_reshape_decoded)
         _deconv2_decoded = decoder_deconv2(_deconv1_decoded)
         _x_decoded_relu = decoder_deconv3_upsamp(_deconv2_decoded)
-        _x_decoded_mean_squash = decoder_mean_squash(_x_decoded_relu)
-        self.generator = Model(decoder_input, _x_decoded_mean_squash)
+        _x_reconstr = decoder_reconstr(_x_decoded_relu)
+        self.generator = Model(decoder_input, _x_reconstr)
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', help='override directory for data', type=str, default='')
-    parser.add_argument('--save_path', help='override path to save files', type=str, default='')
-    parser.add_argument('--nz', help='override latent dimension hyperparameter', type=int, default=0)
-    parser.add_argument('--early_stopping', help='stop when validation loss stops improving', action='store_true')
-    parser.add_argument('--train', help='train for given number of epochs, compute and store class means', type=int, default=0)
-    parser.add_argument('--validate', help='report loss on validation data', action='store_true')
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-    args = parser.parse_args()
+    def build_generators(self):
+        self.train_generator = DataGenerator(self.config.train_path, self.config.image_size, self.config.batch_size)
+        self.dev_generator = DataGenerator(self.config.dev_path, self.config.image_size, self.config.batch_size)
+        self.test_generator = DataGenerator(self.config.test_path, self.config.image_size, self.config.batch_size)
+        self.data_loaded = True
 
-    if args.data_path == '':
-        print('Using default data path data/')
-        data_path = 'data/'
-    else:
-        print('Overriding data path to {0}'.format(args.data_path))
-        data_path = args.data_path
-
-    if args.save_path == '':
-        print('Using default save path model/')
-        save_directory = 'model/'
-    else:
-        print('Overriding save path to {0}'.format(args.save_path))
-        if not os.path.exists(args.save_path):
-            os.makedirs(args.save_path)
-        save_directory = args.save_path
-    if args.early_stopping:
-        save_path = save_directory + 'weights_best.h5'
-    else:
-        save_path = save_directory + 'weights_final.h5'
-    means_path = save_directory + 'means.p'
-
-    params = Params()
-    train_generator = DataGenerator(data_path + 'train/', params)
-    dev_generator = DataGenerator(data_path + 'dev/', params)
-    test_generator = DataGenerator(data_path + 'test/', params)
-    num_classes = train_generator.num_classes()
-
-    if not args.nz == 0:
-        params.latent_size = args.nz
-        print('Overriding latent dimension to size {0}'.format(args.nz))
-
-    network = VAE(params)
-    vae = network.vae
-
-    def train():
-        base_callbacks = Histories()
-        tb_callback = keras.callbacks.TensorBoard(log_dir='logs/')
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(save_directory + 'weights_best.h5', save_best_only=True, verbose=1)
-        callbacks = [base_callbacks, tb_callback, checkpoint_callback]
-        if args.early_stopping:
+    def train(self, max_epochs=1000, overfit=False):
+        if not self.data_loaded:
+            self.build_generators()
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.config.log_path)
+        checkpoint_callback = keras.callbacks.ModelCheckpoint(self.config.weights_path, save_best_only=True, verbose=1)
+        callbacks = [tensorboard_callback, checkpoint_callback]
+        if not overfit:
             earlystopping_callback = keras.callbacks.EarlyStopping(verbose=1, patience=10)
             callbacks.append(earlystopping_callback)
-        vae.fit_generator(generator=train_generator, validation_data=dev_generator, epochs=args.train, callbacks=callbacks)
-        vae.save_weights(save_directory + 'weights_final.h5')
-        print('Saved final weights')
+        self.vae.fit_generator(generator=self.train_generator, validation_data=self.dev_generator, epochs=max_epochs, callbacks=callbacks)
+        self.vae.save_weights(self.config.overfit_path)
+        self.config.trained = True
 
-    def compute_means():
-        print('Encoding input')
-        z = network.encoder.predict_generator(train_generator, verbose=1)
-
-        print('Grouping vectors by class label')
-        z_grouped = {}
-        for i in range(num_classes):
-            z_grouped[i] = []
-        n = len(train_generator.generator)
+    def compute_encodings(self):
+        if not self.data_loaded:
+            self.build_generators()
+        z = self.encoder.predict_generator(self.train_generator, verbose=1)
+        index_class_dict = self.train_generator.generator.class_indices
+        num_classes = len(index_class_dict)
+        n = len(self.train_generator)
+        self.encodings = {}
+        self.train_generator.train_mode = False
+        print('Computing encodings')
         for i in range(n):
             print('{0} of {1}'.format(i+1, n), end='\r')
-            _, y = train_generator.generator[i]
+            _, y = self.train_generator[i]
             for j, class_index in enumerate(y):
-                z_grouped[class_index].append(z[params.batch_size * i + j])
+                class_name = index_class_dict[class_index]
+                if class_name not in self.encodings:
+                    self.encodings[class_name] = []
+                self.encodings[class_name].append(z[self.config.batch_size * i + j])
+        pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
+        self.config.computed_encodings = True
 
-        class_names = train_generator.class_names()
-        class_means = np.zeros((num_classes, params.latent_size))
+    def compute_means(self):
+        if not self.config.computed_encodings:
+            self.compute_encodings()
         print('Computing class means')
-        for i in range(num_classes):
-            print('{0} of {1}'.format(i+1, num_classes), end='\r')
-            if len(z_grouped[i]) > 0:
-                class_means[i] = np.mean(z_grouped[i], axis=0)
-
-        with open(means_path, 'wb') as f:
-            pickle.dump(class_means, f)
-        print('Successfully wrote means to file: {0}'.format(means_path))
-
-    if args.train:
-        train()
-        compute_means()
-
-    if args.validate:
-        vae.load_weights(save_directory + 'weights_best.h5')
-        print('Evaluating best weights')
-        loss = vae.evaluate_generator(generator=dev_generator, verbose=1)
-        print('Best weights validation loss: {0}'.format(loss))
-        if os.path.exists(save_directory + 'weights_final.h5'):
-            vae.load_weights(save_directory + 'weights_final.h5')
-            print('Evaluating final weights')
-            loss = vae.evaluate_generator(generator=dev_generator, verbose=1)
-            print('Final weights validation loss: {0}'.format(loss))
+        self.class_means = {}
+        for class_name, class_vectors in self.encodings.items():
+            self.class_means[class_name] = np.mean(class_vectors, axis=0)
+        pickle.dump(self.class_means, open(self.config.means_path, 'wb+'))
+        self.config.computed_means = True

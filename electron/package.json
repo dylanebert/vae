@@ -9,6 +9,7 @@
   "license": "ISC",
   "dependencies": {
     "electron": "^2.0.8",
-    "electron-reload": "^1.2.5"
+    "electron-reload": "^1.2.5",
+    "npm": "^6.4.1"
   }
 }
