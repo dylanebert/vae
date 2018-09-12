@@ -3,7 +3,7 @@ from config import Config
 import argparse
 import os
 import sys
-import pickle
+import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', help='data directory, containg train/dev/test folders', type=str, required=True)
@@ -24,10 +24,11 @@ if not args.train and not args.compute_encodings and not args.compute_means and 
 
 if args.data_path is not None and not os.path.exists(args.data_path):
     sys.exit('Error: data path {0} not found'.format(args.data_path))
-if args.model_path is not None and os.path.exists(os.path.join(args.model_path, 'config.p')):
-    config = pickle.load(open(os.path.join(args.model_path, 'config.p'), 'rb'))
-else:
-    config = Config(args.data_path, args.model_path, args.image_size, args.filters, args.latent_size, args.batch_size, args.learning_rate)
+config = Config(args.data_path, args.model_path, args.image_size, args.filters, args.latent_size, args.batch_size, args.learning_rate)
+if args.model_path is not None and os.path.exists(os.path.join(args.model_path, 'config.json')):
+    config_vals = json.loads(open(os.path.join(args.model_path, 'config.json'), 'r').read())
+    config.__dict__ = config_vals
+
 
 vae = VAE(config)
 if args.train is not 0:
@@ -40,4 +41,5 @@ if args.compute_means or args.all:
     vae.compute_means()
 if args.decode_means or args.all:
     vae.decode_means()
-pickle.dump(config, open(config.save_path, 'wb+'))
+with open(config.save_path, 'w+') as f:
+    f.write(json.dumps(config.__dict__))

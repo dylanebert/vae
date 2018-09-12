@@ -1,6 +1,6 @@
 import os
 
-class Config:
+class Config():
     def __init__(self, data_path, model_path, image_size, filters, latent_size, batch_size, learning_rate):
         self.data_path = data_path
         self.model_path = model_path
@@ -19,7 +19,7 @@ class Config:
         self.log_path = os.path.join(model_path, 'logs')
         self.encodings_path = os.path.join(model_path, 'encodings.p')
         self.means_path = os.path.join(model_path, 'means.p')
-        self.save_path = os.path.join(model_path, 'config.p')
+        self.save_path = os.path.join(model_path, 'config.json')
         self.image_path = os.path.join(model_path, 'images')
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)
