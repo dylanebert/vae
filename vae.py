@@ -7,6 +7,7 @@ from keras import optimizers
 from keras import backend as K
 from keras import metrics
 from data_generator import DataGenerator
+from scipy.misc import imsave
 import numpy as np
 import os
 import pickle
@@ -143,3 +144,15 @@ class VAE:
             self.class_means[class_name] = np.mean(class_vectors, axis=0)
         pickle.dump(self.class_means, open(self.config.means_path, 'wb+'))
         self.config.computed_means = True
+
+    def decode_means(self):
+        if not self.config.computed_means:
+            self.compute_means()
+        print('Decoding class means')
+        class_names = list(self.class_means.keys())
+        class_means = np.array(list(self.class_means.values()))
+        decoded = self.generator.predict(class_means)
+        for i, img in enumerate(decoded):
+            class_name = class_names[i]
+            image_path = os.path.join(self.config.image_path, class_name + '.jpg')
+            imsave(image_path, img)
