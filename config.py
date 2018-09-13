@@ -17,8 +17,8 @@ class Config():
         self.weights_path = os.path.join(model_path, 'weights_best.h5')
         self.overfit_path = os.path.join(model_path, 'weights_overfit.h5')
         self.log_path = os.path.join(model_path, 'logs')
-        self.encodings_path = os.path.join(model_path, 'encodings.p')
-        self.means_path = os.path.join(model_path, 'means.p')
+        self.encodings_path = os.path.join(model_path, 'encodings.json')
+        self.means_path = os.path.join(model_path, 'means.json')
         self.save_path = os.path.join(model_path, 'config.json')
         self.image_path = os.path.join(model_path, 'images')
         if not os.path.exists(self.log_path):
