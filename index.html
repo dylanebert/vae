@@ -16,8 +16,24 @@ html, body {
     height: 100%;
     font-family: 'Open Sans', sans-serif;
 }
+.dropdown button, #dropdown, #dropdown li, #dropdown li a {
+    width: 100%;
+}
+#dropdownSearch {
+    width: 96%;
+    margin: .5em 2%;
+}
 </style>
 <body>
+    <div class="container">
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown">Select class <span class="caret"></span></button>
+            <ul class="dropdown-menu pre-scrollable" aria-labelledby="dropdownMenuButton" id="dropdown">
+                <li><input type="text" placeholder="Search..." id="dropdownSearch"></li>
+                <li><a href="#" id="helpOpen">Load a model</a></li>
+            </ul>
+        </div>
+    </div>
 </body>
 <script src="index.js"></script>
 </html>
