@@ -10,7 +10,7 @@ from data_generator import DataGenerator
 from scipy.misc import imsave
 import numpy as np
 import os
-import json
+import pickle
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class VAE:
@@ -92,9 +92,9 @@ class VAE:
         if config.trained:
             self.vae.load_weights(config.weights_path)
         if config.computed_encodings:
-            self.encodings = json.loads(open(config.encodings_path, 'r').read())
+            self.encodings = pickle.load(open(config.encodings_path, 'rb'))
         if config.computed_means:
-            self.class_means = json.loads(open(config.means_path, 'r').read())
+            self.class_means = pickle.load(open(config.means_path, 'rb'))
 
     def build_generators(self):
         self.train_generator = DataGenerator(self.config.train_path, self.config.image_size, self.config.batch_size)
@@ -132,7 +132,7 @@ class VAE:
                 if class_name not in self.encodings:
                     self.encodings[class_name] = []
                 self.encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
-        json.dump(self.encodings, open(self.config.encodings_path, 'w+'))
+        pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
         self.config.computed_encodings = True
 
     def compute_means(self):
@@ -142,7 +142,7 @@ class VAE:
         self.class_means = {}
         for class_name, class_vectors in self.encodings.items():
             self.class_means[class_name] = np.mean(class_vectors, axis=0).tolist()
-        json.dump(self.class_means, open(self.config.means_path, 'w+'))
+        pickle.dump(self.class_means, open(self.config.means_path, 'wb+'))
         self.config.computed_means = True
 
     def decode_means(self):
