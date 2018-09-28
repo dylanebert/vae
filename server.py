@@ -1,7 +1,8 @@
 import os
-from flask import Flask, request
+from flask import Flask, request, send_file
 import pickle
 import json
+import base64
 from config import Config
 app = Flask(__name__)
 
@@ -18,6 +19,13 @@ class Model:
 
 model = None
 
+@app.route('/is-loaded')
+def loaded():
+    if model is None:
+        return '0'
+    else:
+        return '1'
+
 @app.route('/load')
 def load():
     config_path = request.args.get('path')
@@ -30,17 +38,21 @@ def load():
 
 @app.route('/test')
 def test():
-    if model is None:
-        return 'No model has been loaded'
-    else:
-        return str(model)
+    return str(model)
 
 @app.route('/classes')
 def classes():
-    if model is None:
-        return 'No model has been loaded'
+    return json.dumps(sorted(list(model.encodings.keys()))[:100])
+
+@app.route('/image')
+def image():
+    label = request.args.get('label')
+    path = os.path.join(model.config.image_path, label + '.jpg')
+    if not os.path.exists(path):
+        return 'Image not found'
     else:
-        return json.dumps(sorted(list(model.encodings.keys())))
+        with open(path, 'rb') as f:
+            return base64.b64encode(f.read()).decode('utf-8')
 
 if __name__ == '__main__':
     app.run()

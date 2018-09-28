@@ -1,12 +1,18 @@
 const {remote} = require('electron')
 const {dialog, Menu, MenuItem} = remote
+const fs = remote.require('fs')
+const path = remote.require('path')
 
 //Menu
 var config = null
 
 function reload() {
     $('.dropdown-item').click(function() {
-        console.log($(this).text())
+        var label = $(this).text()
+        $.get('http://localhost:5000/image?label=' + label, function(data) {
+            $('#title').text(label)
+            $('#reconstruction').attr('src', 'data:image/jpeg;base64, ' + data)
+        })
     })
 }
 
@@ -20,6 +26,7 @@ function populateClasses() {
             $('#dropdown').append(html)
         })
         reload()
+        $('#loadingScreen').css('display', 'none')
     })
 }
 
@@ -31,11 +38,14 @@ function loadModel() {
         }
 
         var filename = filenames[0]
+        $('#loadingScreen').css('display', '')
+        $('#loadingText').text('Loading model')
         $.get('http://localhost:5000/load?path=' + filename, function(data) {
             if(data == '1') {
                 populateClasses()
             } else {
                 console.log(data)
+                $('#loadingScreen').css('display', 'none')
             }
         })
     })
@@ -63,6 +73,15 @@ $('#dropdownSearch').keyup(function() {
             $(elem).css('display', '')
         } else {
             $(elem).css('display', 'none')
+        }
+    })
+})
+
+$(document).ready(function() {
+    $('#loadingScreen').css('display', 'none')
+    $.get('http://localhost:5000/is-loaded', function(data) {
+        if(data == '1') {
+            populateClasses()
         }
     })
 })
