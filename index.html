@@ -16,10 +16,10 @@ html, body {
     height: 100%;
     font-family: 'Open Sans', sans-serif;
 }
-.dropdown button, #dropdown, #dropdown li, #dropdown li a {
+.dropdown button, .dropdown-menu, .dropdown-menu li, .dropdown-menu li a {
     width: 100%;
 }
-#dropdownSearch {
+.dropdown-search {
     width: 96%;
     margin: .5em 2%;
 }
@@ -65,27 +65,61 @@ html, body {
     max-height: inherit;
     background-color: rgba(0, 0, 0, .1);
     padding: 10px;
+    text-align: center;
+}
+#main .row {
+    margin-left: auto;
+    margin-right: auto;
 }
 #wrapper {
     height: 100%;
 }
-#reconstruction {
-    width: 120px;
-    height: 120px;
+.reconstruction {
+    width: 100%;
+    max-width: 256px;
+    height: auto;
 }
 </style>
 <body>
     <div class="container" id="wrapper">
         <div class="dropdown">
             <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown">Select class <span class="caret"></span></button>
-            <ul class="dropdown-menu pre-scrollable" aria-labelledby="dropdownMenuButton" id="dropdown">
-                <li><input type="text" placeholder="Search..." id="dropdownSearch"></li>
-                <li><a href="#" id="helpOpen">Load a model</a></li>
+            <ul class="dropdown-menu pre-scrollable" id="dropdown-c1">
+                <li><input type="text" placeholder="Search..." id="c1-search" class="dropdown-search"></li>
+                <li><a href="#" class="helpOpen">Load a model</a></li>
             </ul>
         </div>
         <div id="main" class="pre-scrollable">
-            <h1 id="title"></h1>
-            <img id="reconstruction"></img>
+            <div class="row">
+                <div class="col-sm-6">
+                    <p class="text-muted">class 1</p>
+                </div>
+                <div class="col-sm-6 right">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" data-toggle="dropdown">Compare to <span class="caret"></span></button>
+                        <ul class="dropdown-menu pre-scrollable" id="dropdown-c2">
+                            <li><input type="text" placeholder="Search..." id="c2-search" class="dropdown-search"></li>
+                            <li><a href="#" class="helpOpen">Load a model</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <h1 id="c1-title" class="title"></h1>
+                </div>
+                <div class="col-sm-6 right">
+                    <h1 id="c2-title" class="title"></h1>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <img id="c1-reconstruction" class="reconstruction"></img>
+                </div>
+                <div class="col-sm-6 right">
+                    <img id="c2-reconstruction" class="reconstruction"></img>
+                </div>
+            </div>
         </div>
     </div>
     <div id="loadingScreen">

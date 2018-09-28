@@ -7,11 +7,23 @@ const path = remote.require('path')
 var config = null
 
 function reload() {
-    $('.dropdown-item').click(function() {
+    $('.dropdown-item-c1').click(function() {
         var label = $(this).text()
+        $('#loadingScreen').css('display', '')
         $.get('http://localhost:5000/image?label=' + label, function(data) {
-            $('#title').text(label)
-            $('#reconstruction').attr('src', 'data:image/jpeg;base64, ' + data)
+            $('#c1-title').text(label)
+            $('#c1-reconstruction').attr('src', 'data:image/jpeg;base64, ' + data)
+            $('#loadingScreen').css('display', 'none')
+            $('.right').css('display', '')
+        })
+    })
+    $('.dropdown-item-c2').click(function() {
+        var label = $(this).text()
+        $('#loadingScreen').css('display', '')
+        $.get('http://localhost:5000/image?label=' + label, function(data) {
+            $('#c2-title').text(label)
+            $('#c2-reconstruction').attr('src', 'data:image/jpeg;base64, ' + data)
+            $('#loadingScreen').css('display', 'none')
         })
     })
 }
@@ -19,11 +31,13 @@ function reload() {
 function populateClasses() {
     $.get('http://localhost:5000/classes', function(json) {
         var data = $.parseJSON(json)
-        $('.dropdown-item').remove()
-        $('#helpOpen').remove()
+        $('.dropdown-item-c1').remove()
+        $('.helpOpen').remove()
         $(data).each(function(i, entry) {
-            var html = '<li><a class="dropdown-item" href="#">' + entry + '</a></li>'
-            $('#dropdown').append(html)
+            var html1 = '<li><a class="dropdown-item-c1" href="#">' + entry + '</a></li>'
+            var html2 = '<li><a class="dropdown-item-c2" href="#">' + entry + '</a></li>'
+            $('#dropdown-c1').append(html1)
+            $('#dropdown-c2').append(html2)
         })
         reload()
         $('#loadingScreen').css('display', 'none')
@@ -63,12 +77,12 @@ const template = [{
 const menu = Menu.buildFromTemplate(template)
 Menu.setApplicationMenu(menu)
 
-$('#helpOpen').click(loadModel)
+$('.helpOpen').click(loadModel)
 
 //Dropdown
-$('#dropdownSearch').keyup(function() {
+$('#c1-search').keyup(function() {
     const filter = $(this).val().toUpperCase()
-    $('.dropdown-item').each(function(i, elem) {
+    $('.dropdown-item-c1').each(function(i, elem) {
         if($(elem).text().toUpperCase().indexOf(filter) > -1) {
             $(elem).css('display', '')
         } else {
@@ -79,6 +93,7 @@ $('#dropdownSearch').keyup(function() {
 
 $(document).ready(function() {
     $('#loadingScreen').css('display', 'none')
+    $('.right').css('display', 'none')
     $.get('http://localhost:5000/is-loaded', function(data) {
         if(data == '1') {
             populateClasses()
