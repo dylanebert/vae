@@ -3,6 +3,8 @@ from flask import Flask, request, send_file
 import pickle
 import json
 import base64
+import numpy as np
+from sklearn.decomposition import PCA
 from config import Config
 app = Flask(__name__)
 
@@ -13,6 +15,15 @@ class Model:
             self.means = pickle.load(f)
         with open(config.encodings_path, 'rb') as f:
             self.encodings = pickle.load(f)
+        labels = list(self.means.keys())
+        mean_vals = np.array(list(self.means.values()))
+        pca = PCA(n_components=2)
+        means_reduced = pca.fit_transform(mean_vals)
+        encodings_reduced = {}
+        for label in labels:
+            encodings_reduced[label] = pca.transform(np.array(list(self.encodings[label])))
+        self.means_reduced = dict(zip(labels, means_reduced))
+        self.encodings_reduced = encodings_reduced
 
     def __str__(self):
         return str(self.config)
@@ -44,15 +55,22 @@ def test():
 def classes():
     return json.dumps(sorted(list(model.encodings.keys()))[:100])
 
-@app.route('/image')
-def image():
+@app.route('/data')
+def data():
+    data = {}
     label = request.args.get('label')
     path = os.path.join(model.config.image_path, label + '.jpg')
     if not os.path.exists(path):
         return 'Image not found'
-    else:
-        with open(path, 'rb') as f:
-            return base64.b64encode(f.read()).decode('utf-8')
+    with open(path, 'rb') as f:
+        data['img'] = base64.b64encode(f.read()).decode('utf-8')
+    mean_reduced = model.means_reduced[label].tolist()
+    encodings_reduced = model.encodings_reduced[label].tolist()
+    mean_reduced = {'x': mean_reduced[0], 'y': mean_reduced[1]}
+    encodings_reduced = [{'x': x[0], 'y': x[1]} for x in encodings_reduced]
+    data['mean'] = mean_reduced
+    data['encodings'] = encodings_reduced
+    return json.dumps(data)
 
 if __name__ == '__main__':
     app.run()
