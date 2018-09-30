@@ -11,7 +11,7 @@ from scipy.misc import imsave
 import numpy as np
 import os
 import pickle
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class VAE:
     def __init__(self, config):
@@ -93,6 +93,8 @@ class VAE:
             self.vae.load_weights(config.weights_path)
         if config.computed_encodings:
             self.encodings = pickle.load(open(config.encodings_path, 'rb'))
+        if config.computed_test_encodings:
+            self.test_encodings = pickle.load(open(config.test_encodings_path, 'rb'))
         if config.computed_means:
             self.class_means = pickle.load(open(config.means_path, 'rb'))
 
@@ -115,10 +117,13 @@ class VAE:
         self.vae.save_weights(self.config.overfit_path)
         self.config.trained = True
 
-    def compute_encodings(self):
+    def compute_encodings(self, test=False):
         if not self.data_loaded:
             self.build_generators()
-        z = self.encoder.predict_generator(self.train_generator, verbose=1)
+        if test:
+            z = self.encoder.predict_generator(self.test_generator, verbose=1)
+        else:
+            z = self.encoder.predict_generator(self.train_generator, verbose=1)
         class_index_dict = self.train_generator.generator.class_indices
         index_class_dict = {k: v for v, k in class_index_dict.items()}
         num_classes = len(index_class_dict)
@@ -132,8 +137,12 @@ class VAE:
                 if class_name not in self.encodings:
                     self.encodings[class_name] = []
                 self.encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
-        pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
-        self.config.computed_encodings = True
+        if test:
+            pickle.dump(self.encodings, open(self.config.test_encodings_path, 'wb+'))
+            self.config.computed_test_encodings = True
+        else:
+            pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
+            self.config.computed_encodings = True
 
     def compute_means(self):
         if not self.config.computed_encodings:

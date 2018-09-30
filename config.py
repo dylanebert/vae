@@ -19,8 +19,9 @@ class Config():
         self.weights_path = os.path.join(model_path, 'weights_best.h5')
         self.overfit_path = os.path.join(model_path, 'weights_overfit.h5')
         self.log_path = os.path.join(model_path, 'logs')
-        self.encodings_path = os.path.join(model_path, 'encodings.json')
-        self.means_path = os.path.join(model_path, 'means.json')
+        self.encodings_path = os.path.join(model_path, 'encodings.p')
+        self.test_encodings_path = os.path.join(model_path, 'test_encodings.p')
+        self.means_path = os.path.join(model_path, 'means.p')
         self.save_path = os.path.join(model_path, 'config.json')
         self.image_path = os.path.join(model_path, 'images')
         if not os.path.exists(self.log_path):
@@ -29,4 +30,5 @@ class Config():
             os.makedirs(self.image_path)
         self.trained = False
         self.computed_encodings = False
+        self.computed_test_encodings = False
         self.computed_means = False

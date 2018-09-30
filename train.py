@@ -15,6 +15,7 @@ parser.add_argument('--batch_size', help='number of images per batch', type=int,
 parser.add_argument('--learning_rate', help='model learning rate', type=float, default=.001)
 parser.add_argument('--train', help='train for given max epochs', type=int, default=0)
 parser.add_argument('--compute_encodings', help='compute and store train encodings', action='store_true')
+parser.add_argument('--compute_test_encodings', help='compute and store train encodings', action='store_true')
 parser.add_argument('--compute_means', help='compute and store mean encoding of each word', action='store_true')
 parser.add_argument('--decode_means', help='decode and store image corresponding to each mean', action='store_true')
 parser.add_argument('-a', '--all', help='shorthand to perform all training procedures', action='store_true')
@@ -26,9 +27,7 @@ if args.data_path is not None and not os.path.exists(args.data_path):
     sys.exit('Error: data path {0} not found'.format(args.data_path))
 config = Config(args.data_path, args.model_path, args.image_size, args.filters, args.latent_size, args.batch_size, args.learning_rate)
 if args.model_path is not None and os.path.exists(os.path.join(args.model_path, 'config.json')):
-    config_vals = json.loads(open(os.path.join(args.model_path, 'config.json'), 'r').read())
-    config.__dict__ = config_vals
-
+    config.__dict__ = json.loads(open(os.path.join(args.model_path, 'config.json'), 'r').read())
 
 vae = VAE(config)
 if args.train is not 0:
@@ -37,6 +36,8 @@ elif args.all:
     vae.train()
 if args.compute_encodings or args.all:
     vae.compute_encodings()
+if args.compute_test_encodings or args.all:
+    vae.compute_encodings(test=True)
 if args.compute_means or args.all:
     vae.compute_means()
 if args.decode_means or args.all:
