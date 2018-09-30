@@ -20,7 +20,7 @@ parser.add_argument('--compute_means', help='compute and store mean encoding of 
 parser.add_argument('--decode_means', help='decode and store image corresponding to each mean', action='store_true')
 parser.add_argument('-a', '--all', help='shorthand to perform all training procedures', action='store_true')
 args = parser.parse_args()
-if not args.train and not args.compute_encodings and not args.compute_means and not args.decode_means and not args.all:
+if not args.train and not args.compute_encodings and not args.compute_test_encodings and not args.compute_means and not args.decode_means and not args.all:
     sys.exit('Error: at least one command is required (train/compute_encodings/compute_means/decode_means/all)')
 
 if args.data_path is not None and not os.path.exists(args.data_path):
@@ -37,7 +37,7 @@ elif args.all:
 if args.compute_encodings or args.all:
     vae.compute_encodings()
 if args.compute_test_encodings or args.all:
-    vae.compute_encodings(test=True)
+    vae.compute_test_encodings()
 if args.compute_means or args.all:
     vae.compute_means()
 if args.decode_means or args.all:
