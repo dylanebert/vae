@@ -21,6 +21,7 @@ class VAE:
         self.test_generator = None
         self.data_loaded = False
         self.encodings = {}
+        self.test_encodings = {}
         self.class_means = {}
 
         image_size = config.image_size
@@ -91,12 +92,16 @@ class VAE:
 
         if config.trained:
             self.vae.load_weights(config.weights_path)
+            print('Loaded weights')
         if config.computed_encodings:
             self.encodings = pickle.load(open(config.encodings_path, 'rb'))
+            print('Loaded encodings')
         if config.computed_test_encodings:
             self.test_encodings = pickle.load(open(config.test_encodings_path, 'rb'))
+            print('Loaded test encodings')
         if config.computed_means:
             self.class_means = pickle.load(open(config.means_path, 'rb'))
+            print('Loaded means')
 
     def build_generators(self):
         self.train_generator = DataGenerator(self.config.train_path, self.config.image_size, self.config.batch_size)
@@ -117,13 +122,10 @@ class VAE:
         self.vae.save_weights(self.config.overfit_path)
         self.config.trained = True
 
-    def compute_encodings(self, test=False):
+    def compute_encodings(self):
         if not self.data_loaded:
             self.build_generators()
-        if test:
-            z = self.encoder.predict_generator(self.test_generator, verbose=1)
-        else:
-            z = self.encoder.predict_generator(self.train_generator, verbose=1)
+        z = self.encoder.predict_generator(self.train_generator, verbose=1)
         class_index_dict = self.train_generator.generator.class_indices
         index_class_dict = {k: v for v, k in class_index_dict.items()}
         num_classes = len(index_class_dict)
@@ -137,12 +139,28 @@ class VAE:
                 if class_name not in self.encodings:
                     self.encodings[class_name] = []
                 self.encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
-        if test:
-            pickle.dump(self.encodings, open(self.config.test_encodings_path, 'wb+'))
-            self.config.computed_test_encodings = True
-        else:
-            pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
-            self.config.computed_encodings = True
+        pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
+        self.config.computed_encodings = True
+
+    def compute_test_encodings(self):
+        if not self.data_loaded:
+            self.build_generators()
+        z = self.encoder.predict_generator(self.test_generator, verbose=1)
+        class_index_dict = self.test_generator.generator.class_indices
+        index_class_dict = {k: v for v, k in class_index_dict.items()}
+        num_classes = len(index_class_dict)
+        n = len(self.test_generator)
+        print('Computing encodings')
+        for i in range(n):
+            print('{0} of {1}'.format(i+1, n), end='\r')
+            _, y = self.test_generator.generator[i]
+            for j, class_index in enumerate(y):
+                class_name = index_class_dict[class_index]
+                if class_name not in self.test_encodings:
+                    self.test_encodings[class_name] = []
+                self.test_encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
+        pickle.dump(self.test_encodings, open(self.config.test_encodings_path, 'wb+'))
+        self.config.computed_test_encodings = True
 
     def compute_means(self):
         if not self.config.computed_encodings:
