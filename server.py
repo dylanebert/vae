@@ -30,9 +30,9 @@ class Model:
 
 model = None
 
-def get_inception_accuracies(label):
+def get_accuracies(label, path):
     inception_predictions = []
-    with open(os.path.join('inception_predictions', label + '.json'), 'r') as f:
+    with open(os.path.join(path, label + '.json'), 'r') as f:
         for line in f:
             inception_predictions.append(json.loads(line))
 
@@ -106,7 +106,7 @@ def test():
 
 @app.route('/classes')
 def classes():
-    return json.dumps(sorted(list(model.encodings.keys()))[:100])
+    return json.dumps(sorted(list(model.encodings.keys())))
 
 @app.route('/data')
 def data():
@@ -121,14 +121,20 @@ def data():
     encodings_reduced = model.encodings_reduced[label].tolist()
     mean_reduced = {'x': mean_reduced[0], 'y': mean_reduced[1]}
     encodings_reduced = [{'x': x[0], 'y': x[1]} for x in encodings_reduced]
-    r1, r5, r10, r25, r50 = get_inception_accuracies(label)
+    r1, r5, r10, r25, r50 = get_accuracies(label, 'inception_predictions')
+    s1, s5, s10, s25, s50 = get_accuracies(label, 'model/gmc/predictions')
     data['mean'] = mean_reduced
     data['encodings'] = encodings_reduced
-    data['r1'] = r1
-    data['r5'] = r5
-    data['r10'] = r10
-    data['r25'] = r25
-    data['r50'] = r50
+    data['r1-an'] = r1
+    data['r5-an'] = r5
+    data['r10-an'] = r10
+    data['r25-an'] = r25
+    data['r50-an'] = r50
+    data['r1-cm'] = s1
+    data['r5-cm'] = s5
+    data['r10-cm'] = s10
+    data['r25-cm'] = s25
+    data['r50-cm'] = s50
     return json.dumps(data)
 
 if __name__ == '__main__':

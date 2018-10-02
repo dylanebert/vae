@@ -65,8 +65,12 @@ function reload() {
             var parsed = $.parseJSON(data)
 
             $.each(['r1', 'r5', 'r10', 'r25', 'r50'], function(i, r) {
-                var rVal = Math.round(parsed[r] * 100) / 100
-                $('#' + c + '-' + r + '-an').text(rVal)
+                $.each(['an', 'cm'], function(j, s) {
+                    var idx = r + '-' + s
+                    var rVal = Math.round(parsed[idx] * 100) / 100
+                    $('#' + c + '-' + idx).text(rVal)
+                })
+
             })
 
             var img = parsed.img
