@@ -3,6 +3,7 @@ const {dialog, Menu, MenuItem} = remote
 const fs = remote.require('fs')
 const path = remote.require('path')
 
+const meanColors = {'c1': 'rgba(225, 0, 0, 1)', 'c2': 'rgba(0, 0, 225, 1)'}
 const encodingColors = {'c1': 'rgba(225, 0, 0, .2)', 'c2': 'rgba(0, 0, 225, .2)'}
 
 var config = null
@@ -13,6 +14,20 @@ var chart = new Chart(ctx, {
         datasets: []
     },
     options: {
+        tooltips: {
+                callbacks: {
+                    label: function(tooltipItem, data) {
+                        var label = data.datasets[tooltipItem.datasetIndex].label || ''
+                        if(label) {
+                            label += ': '
+                        }
+                        label += Math.round(tooltipItem.xLabel * 100) / 100
+                        label += ', '
+                        label += Math.round(tooltipItem.yLabel * 100) / 100
+                        return label
+                    }
+                }
+        },
         scales: {
             xAxes: [{
                 type: 'linear',
@@ -44,9 +59,16 @@ function reload() {
             c = 'c2'
         }
         $('#loadingScreen').css('display', '')
+        $('.row').css('display', '')
         $('#loadingText').text('Loading class data')
         $.get('http://localhost:5000/data?label=' + label, function(data) {
             var parsed = $.parseJSON(data)
+
+            $.each(['r1', 'r5', 'r10', 'r25', 'r50'], function(i, r) {
+                var rVal = Math.round(parsed[r] * 100) / 100
+                $('#' + c + '-' + r + '-an').text(rVal)
+            })
+
             var img = parsed.img
             var mean = parsed.mean
             var encodings = parsed.encodings
@@ -61,7 +83,13 @@ function reload() {
                 if(chart.data.datasets.length > 1)
                     chart.data.datasets.pop()
             }
-            chart.data.datasets.push({label: label, data: encodings, backgroundColor: encodingColors[c]})
+            var bgColors = []
+            $.each(encodings, function(e) {
+                bgColors.push(encodingColors[c])
+            })
+            encodings.push(mean)
+            bgColors.push(meanColors[c])
+            chart.data.datasets.push({label: label, data: encodings, backgroundColor: encodingColors[c], pointBackgroundColor: bgColors})
             chart.update()
         })
     })

@@ -30,6 +30,59 @@ class Model:
 
 model = None
 
+def get_inception_accuracies(label):
+    inception_predictions = []
+    with open(os.path.join('inception_predictions', label + '.json'), 'r') as f:
+        for line in f:
+            inception_predictions.append(json.loads(line))
+
+    r1 = []
+    r5 = []
+    r10 = []
+    r25 = []
+    r50 = []
+
+    for line in inception_predictions:
+        preds = line['predictions']
+        if label is preds[0]:
+            r1.append(1)
+            r5.append(1)
+            r10.append(1)
+            r25.append(1)
+            r50.append(1)
+        elif label in preds[:5]:
+            r1.append(0)
+            r5.append(1)
+            r10.append(1)
+            r25.append(1)
+            r50.append(1)
+        elif label in preds[:10]:
+            r1.append(0)
+            r5.append(0)
+            r10.append(1)
+            r25.append(1)
+            r50.append(1)
+        elif label in preds[:25]:
+            r1.append(0)
+            r5.append(0)
+            r10.append(0)
+            r25.append(1)
+            r50.append(1)
+        elif label in preds[:50]:
+            r1.append(0)
+            r5.append(0)
+            r10.append(0)
+            r25.append(0)
+            r50.append(1)
+        else:
+            r1.append(0)
+            r5.append(0)
+            r10.append(0)
+            r25.append(0)
+            r50.append(0)
+
+    return np.mean(r1), np.mean(r5), np.mean(r10), np.mean(r25), np.mean(r50)
+
 @app.route('/is-loaded')
 def loaded():
     if model is None:
@@ -68,8 +121,14 @@ def data():
     encodings_reduced = model.encodings_reduced[label].tolist()
     mean_reduced = {'x': mean_reduced[0], 'y': mean_reduced[1]}
     encodings_reduced = [{'x': x[0], 'y': x[1]} for x in encodings_reduced]
+    r1, r5, r10, r25, r50 = get_inception_accuracies(label)
     data['mean'] = mean_reduced
     data['encodings'] = encodings_reduced
+    data['r1'] = r1
+    data['r5'] = r5
+    data['r10'] = r10
+    data['r25'] = r25
+    data['r50'] = r50
     return json.dumps(data)
 
 if __name__ == '__main__':
