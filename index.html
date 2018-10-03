@@ -90,13 +90,15 @@ html, body {
 .section-large {
     margin-top: 100px;
 }
+.blackout {
+    background-color: gray;
+}
 </style>
 <body>
     <div class="wrapper">
         <div class="sidebar left">
             <h3>Choose class:</h3>
             <input id="c1-autocomplete">
-            <h4 id="c1-title" class="section">...</h4>
             <div class="section">
                 <p class="text-muted">Mean:</p>
                 <img id="c1-reconstruction-mean" class="reconstruction" src="https://cdn3.iconfinder.com/data/icons/web-document-icons/512/Upload_Document-512.png"></img>
@@ -113,7 +115,6 @@ html, body {
         <div class="sidebar right">
             <h3>Compare to:</h3>
             <input id="c2-autocomplete">
-            <h4 id="c2-title" class="section">...</h4>
             <div class="section">
                 <p class="text-muted">Mean:</p>
                 <img id="c2-reconstruction-mean" class="reconstruction" src="https://cdn3.iconfinder.com/data/icons/web-document-icons/512/Upload_Document-512.png"></img>
@@ -138,35 +139,50 @@ html, body {
                     <thead>
                         <tr>
                             <th scope="col">Accuracy</th>
-                            <th scope="col">class_means</th>
-                            <th scope="col">inception</th>
+                            <th scope="col" data-toggle="tooltip" title="Accuracy using VAE class means method with cosine similarity">mean_cos</th>
+                            <th scope="col" data-toggle="tooltip" title="Accuracy using inception image classification network">inception</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <th scope="row">r1</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with the correct top prediction">r1</th>
                             <td id="c1-r1-cm"></td>
                             <td id="c1-r1-an"></td>
                         </tr>
                         <tr>
-                            <th scope="row">r5</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with correct prediction in top 5">r5</th>
                             <td id="c1-r5-cm"></td>
                             <td id="c1-r5-an"></td>
                         </tr>
                         <tr>
-                            <th scope="row">r10</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with correct prediction in top 10">r10</th>
                             <td id="c1-r10-cm"></td>
                             <td id="c1-r10-an"></td>
                         </tr>
                         <tr>
-                            <th scope="row">r25</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with correct prediction in top 25">r25</th>
                             <td id="c1-r25-cm"></td>
                             <td id="c1-r25-an"></td>
                         </tr>
                         <tr>
-                            <th scope="row">r50</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with correct prediction in top 50">r50</th>
                             <td id="c1-r50-cm"></td>
                             <td id="c1-r50-an"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples predicted >50% chance to be class">p>.5</th>
+                            <td class="blackout"></td>
+                            <td id="c1-p5">
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples predicted >75% chance to be class">p>.75</th>
+                            <td class="blackout"></td>
+                            <td id="c1-p75">
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples predicted >90% chance to be class">p>.9</th>
+                            <td class="blackout"></td>
+                            <td id="c1-p9">
                         </tr>
                     </tbody>
                 </table>
@@ -177,35 +193,50 @@ html, body {
                     <thead>
                         <tr>
                             <th scope="col">Accuracy</th>
-                            <th scope="col">class_means</th>
-                            <th scope="col">inception</th>
+                            <th scope="col" data-toggle="tooltip" title="Accuracy using VAE class means method with cosine similarity">mean_cos</th>
+                            <th scope="col" data-toggle="tooltip" title="Accuracy using inception image classification network">inception</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <th scope="row">r1</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with the correct top prediction">r1</th>
                             <td id="c2-r1-cm"></td>
                             <td id="c2-r1-an"></td>
                         </tr>
                         <tr>
-                            <th scope="row">r5</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with correct prediction in top 5">r5</th>
                             <td id="c2-r5-cm"></td>
                             <td id="c2-r5-an"></td>
                         </tr>
                         <tr>
-                            <th scope="row">r10</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with correct prediction in top 10">r10</th>
                             <td id="c2-r10-cm"></td>
                             <td id="c2-r10-an"></td>
                         </tr>
                         <tr>
-                            <th scope="row">r25</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with correct prediction in top 25">r25</th>
                             <td id="c2-r25-cm"></td>
                             <td id="c2-r25-an"></td>
                         </tr>
                         <tr>
-                            <th scope="row">r50</th>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples with correct prediction in top 50">r50</th>
                             <td id="c2-r50-cm"></td>
                             <td id="c2-r50-an"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples predicted >50% chance to be class">p>.5</th>
+                            <td class="blackout"></td>
+                            <td id="c2-p5">
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples predicted >75% chance to be class">p>.75</th>
+                            <td class="blackout"></td>
+                            <td id="c2-p75">
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion test samples predicted >90% chance to be class">p>.9</th>
+                            <td class="blackout"></td>
+                            <td id="c2-p9">
                         </tr>
                     </tbody>
                 </table>

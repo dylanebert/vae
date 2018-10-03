@@ -58,7 +58,6 @@ function classClick(label, c) {
         var encodings = parsed.encodings
 
         //Populate sidebar
-        $('#' + c + '-title').text(label)
         $('#' + c + '-reconstruction-mean').attr('src', 'data:image/jpeg;base64, ' + reconstruction_mean)
         $('#loadingScreen').css('display', 'none')
 
