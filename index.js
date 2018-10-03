@@ -6,6 +6,10 @@ const path = remote.require('path')
 const meanColors = {'c1': 'rgba(225, 0, 0, 1)', 'c2': 'rgba(0, 0, 225, 1)'}
 const encodingColors = {'c1': 'rgba(225, 0, 0, .2)', 'c2': 'rgba(0, 0, 225, .2)'}
 
+const red = 'rgba(255, 94, 87,1.0)'
+const yellow = 'rgba(255, 221, 89,1.0)'
+const green = 'rgba(11, 232, 129,1.0)'
+
 var config = null
 var ctx = $('#plot')[0].getContext('2d')
 var chartData = {'c1': null, 'c2': null}
@@ -28,7 +32,7 @@ var chart = new Chart(ctx, {
                         return label
                     }
                 }
-        },
+        }/*,
         scales: {
             xAxes: [{
                 type: 'linear',
@@ -44,7 +48,7 @@ var chart = new Chart(ctx, {
                     min: -4
                 }
             }]
-        }
+        }*/
     }
 })
 
@@ -62,20 +66,31 @@ function classClick(label, c) {
         $('#loadingScreen').css('display', 'none')
 
         //Populate accuracy table
-        $('#' + c + '-table-title').text(label + ' test accuracy:')
+        $('#' + c + '-table-title').text('"' + label + '" test accuracy:')
         $.each(['r1', 'r5', 'r10', 'r25', 'r50'], function(i, r) {
-            $.each(['an', 'cm'], function(j, s) {
+            $.each(['euc', 'cos', 'an'], function(j, s) {
                 var idx = r + '-' + s
                 var rVal = Math.round(parsed[idx] * 100) / 100
-                var bgColor = 'rgba(231, 76, 60, 1)' //red
+                var bgColor = red
                 if(rVal >= .25) {
-                    bgColor = 'rgba(241, 196, 15, 1)' //yellow
+                    bgColor = yellow
                 }
                 if(rVal >= .75) {
-                    bgColor = 'rgba(46, 204, 113, 1)' //green
+                    bgColor = green
                 }
                 $('#' + c + '-' + idx).text(rVal).css('background-color', bgColor)
             })
+        })
+        $.each(['p5', 'p75', 'p9'], function(i, p) {
+            var pVal = Math.round(parsed[p] * 100) / 100
+            var bgColor = red
+            if(pVal >= .25) {
+                bgColor = yellow
+            }
+            if(pVal >= .75) {
+                bgColor = green
+            }
+            $('#' + c + '-' + p).text(pVal).css('background-color', bgColor)
         })
 
         //Populate chart
@@ -119,43 +134,7 @@ function populateClasses() {
     })
 }
 
-//Model loading
-function loadModel() {
-    dialog.showOpenDialog({ filters: [{ name: 'JSON', extensions: ['json'] }], properties: ['openFile'] }, function(filenames) {
-        if(filenames == undefined) {
-            console.log('No file selected')
-            return
-        }
-        var filename = filenames[0]
-        $('#loadingScreen').css('display', '')
-        $('#loadingText').text('Loading model')
-        $.get('http://localhost:5000/load?path=' + filename, function(data) {
-            if(data == '1') {
-                populateClasses()
-            } else {
-                console.log(data)
-                $('#loadingScreen').css('display', 'none')
-            }
-        })
-    })
-}
-const template = [{
-    label: 'File',
-    submenu: [{
-        label: 'Load Model', click() {
-            loadModel()
-        }
-    }]
-}]
-const menu = Menu.buildFromTemplate(template)
-Menu.setApplicationMenu(menu)
-
 //Check if model already loaded on server
 $(document).ready(function() {
-    $('#loadingScreen').css('display', 'none')
-    $.get('http://localhost:5000/is-loaded', function(data) {
-        if(data == '1') {
-            populateClasses()
-        }
-    })
+    populateClasses()
 })
