@@ -11,6 +11,8 @@ from scipy.misc import imsave
 import numpy as np
 import os
 import pickle
+import json
+from scipy.spatial.distance import cosine, euclidean
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class VAE:
@@ -116,7 +118,7 @@ class VAE:
         checkpoint_callback = keras.callbacks.ModelCheckpoint(self.config.weights_path, save_best_only=True, verbose=1)
         callbacks = [tensorboard_callback, checkpoint_callback]
         if not overfit:
-            earlystopping_callback = keras.callbacks.EarlyStopping(verbose=1, patience=10)
+            earlystopping_callback = keras.callbacks.EarlyStopping(verbose=1, patience=2)
             callbacks.append(earlystopping_callback)
         self.vae.fit_generator(generator=self.train_generator, validation_data=self.dev_generator, epochs=max_epochs, callbacks=callbacks)
         self.vae.save_weights(self.config.overfit_path)
@@ -128,6 +130,7 @@ class VAE:
         z = self.encoder.predict_generator(self.train_generator, verbose=1)
         class_index_dict = self.train_generator.generator.class_indices
         index_class_dict = {k: v for v, k in class_index_dict.items()}
+        filenames = self.train_generator.generator.filenames
         num_classes = len(index_class_dict)
         n = len(self.train_generator)
         print('Computing encodings')
@@ -137,8 +140,9 @@ class VAE:
             for j, class_index in enumerate(y):
                 class_name = index_class_dict[class_index]
                 if class_name not in self.encodings:
-                    self.encodings[class_name] = []
-                self.encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
+                    self.encodings[class_name] = {'encodings': [], 'filenames': []}
+                self.encodings[class_name]['encodings'].append(z[self.config.batch_size * i + j].tolist())
+                self.encodings[class_name]['filenames'].append(filenames[self.config.batch_size * i + j])
         pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
         self.config.computed_encodings = True
 
@@ -148,6 +152,7 @@ class VAE:
         z = self.encoder.predict_generator(self.test_generator, verbose=1)
         class_index_dict = self.test_generator.generator.class_indices
         index_class_dict = {k: v for v, k in class_index_dict.items()}
+        filenames = self.test_generator.generator.filenames
         num_classes = len(index_class_dict)
         n = len(self.test_generator)
         print('Computing encodings')
@@ -157,8 +162,9 @@ class VAE:
             for j, class_index in enumerate(y):
                 class_name = index_class_dict[class_index]
                 if class_name not in self.test_encodings:
-                    self.test_encodings[class_name] = []
-                self.test_encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
+                    self.test_encodings[class_name] = {'encodings': [], 'filenames': []}
+                self.test_encodings[class_name]['encodings'].append(z[self.config.batch_size * i + j].tolist())
+                self.test_encodings[class_name]['filenames'].append(filenames[self.config.batch_size * i + j])
         pickle.dump(self.test_encodings, open(self.config.test_encodings_path, 'wb+'))
         self.config.computed_test_encodings = True
 
@@ -167,8 +173,9 @@ class VAE:
             self.compute_encodings()
         print('Computing class means')
         self.class_means = {}
-        for class_name, class_vectors in self.encodings.items():
-            self.class_means[class_name] = np.mean(class_vectors, axis=0).tolist()
+        for label, entry in self.encodings.items():
+            encodings = entry['encodings']
+            self.class_means[label] = np.mean(encodings, axis=0).tolist()
         pickle.dump(self.class_means, open(self.config.means_path, 'wb+'))
         self.config.computed_means = True
 
@@ -183,3 +190,32 @@ class VAE:
             class_name = class_names[i]
             image_path = os.path.join(self.config.image_path, class_name + '.jpg')
             imsave(image_path, img)
+
+    def predict(self):
+        if not self.config.computed_means:
+            self.compute_means()
+        if not self.config.computed_encodings:
+            self.compute_encodings()
+        print('Predicting')
+        means = self.class_means
+        encodings = self.test_encodings
+        k = 0
+        n = len(encodings)
+        for label, entry in encodings.items():
+            encs = entry['encodings']
+            filenames = entry['filenames']
+            path = os.path.join(self.config.predictions_path, label + '.json')
+            if os.path.exists(path):
+                os.remove(path)
+            k += 1
+            print('{0} of {1}'.format(k, n), end='\r')
+            for i, enc in enumerate(encs):
+                try:
+                    nearest_cos = list(dict(sorted(means.items(), key=lambda x: cosine(enc, x[1]))[:100]).keys())
+                    nearest_euc = list(dict(sorted(means.items(), key=lambda x: euclidean(enc, x[1]))[:100]).keys())
+                    line = json.dumps({'label': label, 'filename': filenames[i], 'cos': cosine(enc, means[label]), 'euc': euclidean(enc, means[label]), 'predictions_cos': nearest_cos, 'nearest_euc': nearest_euc})
+                    with open(path, 'a+') as f:
+                        f.write('{0}\n'.format(line))
+                except:
+                    print('Failed on {0}'.format(label))
+        self.config.predicted = True

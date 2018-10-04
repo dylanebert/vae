@@ -1,4 +1,5 @@
 import os
+import json
 
 class Config():
     def __init__(self, data_path=None, model_path=None, image_size=None, filters=None, latent_size=None, batch_size=None, learning_rate=None):
@@ -24,11 +25,22 @@ class Config():
         self.means_path = os.path.join(model_path, 'means.p')
         self.save_path = os.path.join(model_path, 'config.json')
         self.image_path = os.path.join(model_path, 'images')
+        self.predictions_path = os.path.join(model_path, 'predictions')
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)
         if not os.path.exists(self.image_path):
             os.makedirs(self.image_path)
+        if not os.path.exists(self.predictions_path):
+            os.makedirs(self.predictions_path)
         self.trained = False
         self.computed_encodings = False
         self.computed_test_encodings = False
         self.computed_means = False
+        self.predicted = False
+
+    def load(self, path):
+        self.__dict__ = json.loads(open(path, 'r').read())
+
+    def save(self):
+        with open(self.save_path, 'w+') as f:
+            f.write(json.dumps(self.__dict__, indent=4))
