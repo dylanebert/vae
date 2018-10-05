@@ -140,9 +140,8 @@ class VAE:
             for j, class_index in enumerate(y):
                 class_name = index_class_dict[class_index]
                 if class_name not in self.encodings:
-                    self.encodings[class_name] = {'encodings': [], 'filenames': []}
-                self.encodings[class_name]['encodings'].append(z[self.config.batch_size * i + j].tolist())
-                self.encodings[class_name]['filenames'].append(filenames[self.config.batch_size * i + j])
+                    self.encodings[class_name] = []
+                self.encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
         pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
         self.config.computed_encodings = True
 
@@ -173,8 +172,7 @@ class VAE:
             self.compute_encodings()
         print('Computing class means')
         self.class_means = {}
-        for label, entry in self.encodings.items():
-            encodings = entry['encodings']
+        for label, encodings in self.encodings.items():
             self.class_means[label] = np.mean(encodings, axis=0).tolist()
         pickle.dump(self.class_means, open(self.config.means_path, 'wb+'))
         self.config.computed_means = True
