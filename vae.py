@@ -95,15 +95,6 @@ class VAE:
         if config.trained:
             self.vae.load_weights(config.weights_path)
             print('Loaded weights')
-        if config.computed_encodings:
-            self.encodings = pickle.load(open(config.encodings_path, 'rb'))
-            print('Loaded encodings')
-        if config.computed_test_encodings:
-            self.test_encodings = pickle.load(open(config.test_encodings_path, 'rb'))
-            print('Loaded test encodings')
-        if config.computed_means:
-            self.class_means = pickle.load(open(config.means_path, 'rb'))
-            print('Loaded means')
 
     def build_generators(self):
         self.train_generator = DataGenerator(self.config.train_path, self.config.image_size, self.config.batch_size)
@@ -142,7 +133,8 @@ class VAE:
                 if class_name not in self.encodings:
                     self.encodings[class_name] = []
                 self.encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
-        pickle.dump(self.encodings, open(self.config.encodings_path, 'wb+'))
+        with open(self.config.encodings_path, 'wb+') as f:
+            pickle.dump(self.encodings, f)
         self.config.computed_encodings = True
 
     def compute_test_encodings(self):
@@ -164,17 +156,23 @@ class VAE:
                     self.test_encodings[class_name] = {'encodings': [], 'filenames': []}
                 self.test_encodings[class_name]['encodings'].append(z[self.config.batch_size * i + j].tolist())
                 self.test_encodings[class_name]['filenames'].append(filenames[self.config.batch_size * i + j])
-        pickle.dump(self.test_encodings, open(self.config.test_encodings_path, 'wb+'))
+        with open(self.config.test_encodings_path, 'wb+') as f:
+            pickle.dump(self.test_encodings, f)
         self.config.computed_test_encodings = True
 
     def compute_means(self):
         if not self.config.computed_encodings:
             self.compute_encodings()
+        else:
+            with open(config.encodings_path, 'rb') as f:
+                self.encodings = pickle.load(f)
+            print('Loaded encodings')
         print('Computing class means')
         self.class_means = {}
         for label, encodings in self.encodings.items():
             self.class_means[label] = np.mean(encodings, axis=0).tolist()
-        pickle.dump(self.class_means, open(self.config.means_path, 'wb+'))
+        with open(self.config.means_path, 'wb+') as f:
+            pickle.dump(self.class_means, f)
         self.config.computed_means = True
 
     def decode_means(self):
@@ -192,8 +190,16 @@ class VAE:
     def predict(self):
         if not self.config.computed_means:
             self.compute_means()
+        else:
+            with open(config.means_path, 'rb') as f:
+                self.class_means = pickle.load(f)
+            print('Loaded means')
         if not self.config.computed_encodings:
             self.compute_encodings()
+        else:
+            with open(config.test_encodings_path, 'rb') as f:
+                self.test_encodings = pickle.load(f)
+            print('Loaded test encodings')
         print('Predicting')
         means = self.class_means
         encodings = self.test_encodings
