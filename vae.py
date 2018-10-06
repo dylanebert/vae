@@ -161,12 +161,12 @@ class VAE:
         self.config.computed_test_encodings = True
 
     def compute_means(self):
-        if not self.config.computed_encodings:
-            self.compute_encodings()
-        else:
-            with open(config.encodings_path, 'rb') as f:
+        if self.config.computed_encodings:
+            with open(self.config.encodings_path, 'rb') as f:
                 self.encodings = pickle.load(f)
             print('Loaded encodings')
+        else:
+            self.compute_encodings()
         print('Computing class means')
         self.class_means = {}
         for label, encodings in self.encodings.items():
@@ -176,7 +176,11 @@ class VAE:
         self.config.computed_means = True
 
     def decode_means(self):
-        if not self.config.computed_means:
+        if self.config.computed_means:
+            with open(self.config.means_path, 'rb') as f:
+                self.class_means = pickle.load(f)
+            print('Loaded means')
+        else self.config.computed_means:
             self.compute_means()
         print('Decoding class means')
         class_names = list(self.class_means.keys())
@@ -188,18 +192,18 @@ class VAE:
             imsave(image_path, img)
 
     def predict(self):
-        if not self.config.computed_means:
-            self.compute_means()
+        if self.config.computed_encodings:
+            with open(self.config.encodings_path, 'rb') as f:
+                self.encodings = pickle.load(f)
+            print('Loaded encodings')
         else:
-            with open(config.means_path, 'rb') as f:
+            self.compute_encodings()
+        if self.config.computed_means:
+            with open(self.config.means_path, 'rb') as f:
                 self.class_means = pickle.load(f)
             print('Loaded means')
-        if not self.config.computed_encodings:
-            self.compute_encodings()
-        else:
-            with open(config.test_encodings_path, 'rb') as f:
-                self.test_encodings = pickle.load(f)
-            print('Loaded test encodings')
+        else self.config.computed_means:
+            self.compute_means()
         print('Predicting')
         means = self.class_means
         encodings = self.test_encodings
