@@ -192,10 +192,10 @@ class VAE:
             imsave(image_path, img)
 
     def predict(self):
-        if self.config.computed_encodings:
-            with open(self.config.encodings_path, 'rb') as f:
-                self.encodings = pickle.load(f)
-            print('Loaded encodings')
+        if self.config.computed_test_encodings:
+            with open(self.config.test_encodings_path, 'rb') as f:
+                self.test_encodings = pickle.load(f)
+            print('Loaded test encodings')
         else:
             self.compute_encodings()
         if self.config.computed_means:
