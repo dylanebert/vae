@@ -180,7 +180,7 @@ class VAE:
             with open(self.config.means_path, 'rb') as f:
                 self.class_means = pickle.load(f)
             print('Loaded means')
-        else self.config.computed_means:
+        else:
             self.compute_means()
         print('Decoding class means')
         class_names = list(self.class_means.keys())
@@ -202,7 +202,7 @@ class VAE:
             with open(self.config.means_path, 'rb') as f:
                 self.class_means = pickle.load(f)
             print('Loaded means')
-        else self.config.computed_means:
+        else:
             self.compute_means()
         print('Predicting')
         means = self.class_means
