@@ -222,7 +222,7 @@ class VAE:
                 try:
                     nearest_cos = list(dict(sorted(means.items(), key=lambda x: cosine(enc, x[1]))[:100]).keys())
                     nearest_euc = list(dict(sorted(means.items(), key=lambda x: euclidean(enc, x[1]))[:100]).keys())
-                    line = json.dumps({'label': label, 'filename': filenames[i], 'cos': cosine(enc, means[label]), 'euc': euclidean(enc, means[label]), 'predictions_cos': nearest_cos, 'nearest_euc': nearest_euc})
+                    line = json.dumps({'label': label, 'filename': filenames[i], 'cos': cosine(enc, means[label]), 'euc': euclidean(enc, means[label]), 'predictions_cos': nearest_cos, 'predictions_euc': nearest_euc})
                     with open(path, 'a+') as f:
                         f.write('{0}\n'.format(line))
                 except:

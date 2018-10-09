@@ -27,7 +27,7 @@ with open(config_path, 'r') as f:
 model = Model(config)
 print('Finished initialization')
 
-def get_recall(label, path):
+def get_recall(label, path, method='predictions'):
     inception_predictions = []
     with open(os.path.join(path, label + '.json'), 'r') as f:
         for line in f:
@@ -40,7 +40,7 @@ def get_recall(label, path):
     r50 = []
 
     for line in inception_predictions:
-        preds = line['predictions']
+        preds = line[method]
         if label in preds[:1]:
             r1.append(1)
             r5.append(1)
@@ -113,7 +113,7 @@ def get_inception_probs(label, path):
 
 @app.route('/classes')
 def classes():
-    return json.dumps(sorted(list(model.encodings.keys())))
+    return json.dumps(sorted(list(model.encodings_reduced.keys())))
 
 @app.route('/data')
 def data():
@@ -129,8 +129,8 @@ def data():
     mean_reduced = {'x': mean_reduced[0], 'y': mean_reduced[1]}
     encodings_reduced = [{'x': x[0], 'y': x[1]} for x in encodings_reduced]
     r1, r5, r10, r25, r50 = get_recall(label, 'inception_predictions')
-    s1, s5, s10, s25, s50 = get_recall(label, 'model/gmc/predictions_cos')
-    t1, t5, t10, t25, t50 = get_recall(label, 'model/gmc/predictions_euc')
+    s1, s5, s10, s25, s50 = get_recall(label, 'model/gmc/predictions', 'predictions_cos')
+    t1, t5, t10, t25, t50 = get_recall(label, 'model/gmc/predictions', 'nearest_euc')
     p5, p75, p9 = get_inception_probs(label, 'inception_predictions')
     data['mean'] = mean_reduced
     data['encodings'] = encodings_reduced
