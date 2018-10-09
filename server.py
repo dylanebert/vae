@@ -4,26 +4,16 @@ import pickle
 import json
 import base64
 import numpy as np
-from sklearn.decomposition import PCA
 from config import Config
 app = Flask(__name__)
 
 class Model:
     def __init__(self, config):
         self.config = config
-        with open(config.means_path, 'rb') as f:
-            self.means = pickle.load(f)
-        with open(config.encodings_path, 'rb') as f:
-            self.encodings = pickle.load(f)
-        labels = list(self.means.keys())
-        mean_vals = np.array(list(self.means.values()))
-        pca = PCA(n_components=2)
-        means_reduced = pca.fit_transform(mean_vals)
-        encodings_reduced = {}
-        for label in labels:
-            encodings_reduced[label] = pca.transform(np.array(list(self.encodings[label])))
-        self.means_reduced = dict(zip(labels, means_reduced))
-        self.encodings_reduced = encodings_reduced
+        with open(config.means_reduced_path, 'rb') as f:
+            self.means_reduced = pickle.load(f)
+        with open(config.encodings_reduced_path, 'rb') as f:
+            self.encodings_reduced = pickle.load(f)
 
     def __str__(self):
         return str(self.config)
@@ -35,6 +25,7 @@ config = Config()
 with open(config_path, 'r') as f:
     config.__dict__ = json.load(f)
 model = Model(config)
+print('Finished initialization')
 
 def get_recall(label, path):
     inception_predictions = []
@@ -164,4 +155,4 @@ def data():
     return json.dumps(data)
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True, use_reloader=False)

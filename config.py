@@ -26,6 +26,8 @@ class Config():
         self.save_path = os.path.join(model_path, 'config.json')
         self.image_path = os.path.join(model_path, 'images')
         self.predictions_path = os.path.join(model_path, 'predictions')
+        self.encodings_reduced_path = os.path.join(model_path, 'encodings_reduced.p')
+        self.means_reduced_path = os.path.join(model_path, 'means_reduced.p')
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)
         if not os.path.exists(self.image_path):
@@ -37,6 +39,7 @@ class Config():
         self.computed_test_encodings = False
         self.computed_means = False
         self.predicted = False
+        self.computed_reduced = False
 
     def load(self, path):
         self.__dict__ = json.loads(open(path, 'r').read())
@@ -44,3 +47,6 @@ class Config():
     def save(self):
         with open(self.save_path, 'w+') as f:
             f.write(json.dumps(self.__dict__, indent=4))
+
+    def __str__(self):
+        return json.dumps(self.__dict__, indent=4)
