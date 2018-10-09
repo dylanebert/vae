@@ -130,7 +130,7 @@ def data():
     encodings_reduced = [{'x': x[0], 'y': x[1]} for x in encodings_reduced]
     r1, r5, r10, r25, r50 = get_recall(label, 'inception_predictions')
     s1, s5, s10, s25, s50 = get_recall(label, 'model/gmc/predictions', 'predictions_cos')
-    t1, t5, t10, t25, t50 = get_recall(label, 'model/gmc/predictions', 'nearest_euc')
+    t1, t5, t10, t25, t50 = get_recall(label, 'model/gmc/predictions', 'predictions_euc')
     p5, p75, p9 = get_inception_probs(label, 'inception_predictions')
     data['mean'] = mean_reduced
     data['encodings'] = encodings_reduced
