@@ -132,8 +132,9 @@ class VAE:
             for j, class_index in enumerate(y):
                 class_name = index_class_dict[class_index]
                 if class_name not in self.encodings:
-                    self.encodings[class_name] = []
-                self.encodings[class_name].append(z[self.config.batch_size * i + j].tolist())
+                    self.encodings[class_name] = {'encodings': [], 'filenames': []}
+                self.encodings[class_name]['encodings'].append(z[self.config.batch_size * i + j].tolist())
+                self.encodings[class_name]['filenames'].append(filenames[self.config.batch_size * i + j])
         with open(self.config.encodings_path, 'wb+') as f:
             pickle.dump(self.encodings, f)
         self.config.computed_encodings = True
@@ -170,7 +171,8 @@ class VAE:
             self.compute_encodings()
         print('Computing class means')
         self.class_means = {}
-        for label, encodings in self.encodings.items():
+        for label, entry in self.encodings.items():
+            encodings = entry['encodings']
             self.class_means[label] = np.mean(encodings, axis=0).tolist()
         with open(self.config.means_path, 'wb+') as f:
             pickle.dump(self.class_means, f)
@@ -252,7 +254,7 @@ class VAE:
         for i, label in enumerate(labels):
             if i % 100 == 0:
                 print('{0} of {1}'.format(i, n), end='\r')
-            encodings_reduced[label] = pca.transform(np.array(list(self.encodings[label])))
+            encodings_reduced[label] = pca.transform(np.array(list(self.encodings[label]['encodings'])))
         self.means_reduced = dict(zip(labels, means_reduced))
         self.encodings_reduced = encodings_reduced
         with open(self.config.encodings_reduced_path, 'wb+') as f:
