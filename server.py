@@ -27,62 +27,39 @@ with open(config_path, 'r') as f:
 model = Model(config)
 print('Finished initialization')
 
-def get_recall(label, path, method='predictions'):
-    inception_predictions = []
-    with open(os.path.join(path, label + '.json'), 'r') as f:
+inception_predictions_path = 'inception_predictions'
+vae_predictions_path = 'model/gmc/predictions'
+
+def get_r_sets(path, target, method):
+    r_vals = [[] for i in range(5)]
+    r_thresholds = [1, 5, 10, 25, 50]
+    with open(path, 'r') as f:
         for line in f:
-            inception_predictions.append(json.loads(line))
+            parsed = json.loads(line)
+            preds = parsed[method]
+            done = False
+            for r in r_thresholds:
+                if target in preds[:r]:
+                    for i, threshold in enumerate(r_thresholds):
+                        if threshold >= r:
+                            r_vals[i].append(1)
+                        else:
+                            r_vals[i].append(0)
+                    done = True
+                    break
+            if not done:
+                for i, threshold in enumerate(r_thresholds):
+                    r_vals[i].append(0)
+    return r_vals
 
-    r1 = []
-    r5 = []
-    r10 = []
-    r25 = []
-    r50 = []
+def get_recall(path, label, method):
+    r_sets = get_r_sets(path, label, method)
+    r_means = np.mean(r_sets, axis=1)
+    return r_means
 
-    for line in inception_predictions:
-        preds = line[method]
-        if label in preds[:1]:
-            r1.append(1)
-            r5.append(1)
-            r10.append(1)
-            r25.append(1)
-            r50.append(1)
-        elif label in preds[:5]:
-            r1.append(0)
-            r5.append(1)
-            r10.append(1)
-            r25.append(1)
-            r50.append(1)
-        elif label in preds[:10]:
-            r1.append(0)
-            r5.append(0)
-            r10.append(1)
-            r25.append(1)
-            r50.append(1)
-        elif label in preds[:25]:
-            r1.append(0)
-            r5.append(0)
-            r10.append(0)
-            r25.append(1)
-            r50.append(1)
-        elif label in preds[:50]:
-            r1.append(0)
-            r5.append(0)
-            r10.append(0)
-            r25.append(0)
-            r50.append(1)
-        else:
-            r1.append(0)
-            r5.append(0)
-            r10.append(0)
-            r25.append(0)
-            r50.append(0)
-
-    return np.mean(r1), np.mean(r5), np.mean(r10), np.mean(r25), np.mean(r50)
-
-def get_inception_probs(label, path):
+def get_inception_probs(path, label):
     inception_predictions = []
-    with open(os.path.join(path, label + '.json'), 'r') as f:
+    with open(path, 'r') as f:
         for line in f:
             inception_predictions.append(json.loads(line))
 
@@ -128,27 +105,56 @@ def data():
     encodings_reduced = model.encodings_reduced[label].tolist()
     mean_reduced = {'x': mean_reduced[0], 'y': mean_reduced[1]}
     encodings_reduced = [{'x': x[0], 'y': x[1]} for x in encodings_reduced]
-    r1, r5, r10, r25, r50 = get_recall(label, 'inception_predictions')
-    s1, s5, s10, s25, s50 = get_recall(label, 'model/gmc/predictions', 'predictions_cos')
-    t1, t5, t10, t25, t50 = get_recall(label, 'model/gmc/predictions', 'predictions_euc')
-    p5, p75, p9 = get_inception_probs(label, 'inception_predictions')
+    r1_cos, r5_cos, r10_cos, r25_cos, r50_cos = get_recall(os.path.join(vae_predictions_path, label + '.json'), label, 'predictions_cos')
+    r1_euc, r5_euc, r10_euc, r25_euc, r50_euc = get_recall(os.path.join(vae_predictions_path, label + '.json'), label, 'predictions_euc')
+    r1_c, r5_c, r10_c, r25_c, r50_c = get_recall(os.path.join(inception_predictions_path, label + '.json'), label, 'predictions')
+    p5, p75, p9 = get_inception_probs(os.path.join(inception_predictions_path, label + '.json'), label)
     data['mean'] = mean_reduced
     data['encodings'] = encodings_reduced
-    data['r1-an'] = r1
-    data['r5-an'] = r5
-    data['r10-an'] = r10
-    data['r25-an'] = r25
-    data['r50-an'] = r50
-    data['r1-cos'] = s1
-    data['r5-cos'] = s5
-    data['r10-cos'] = s10
-    data['r25-cos'] = s25
-    data['r50-cos'] = s50
-    data['r1-euc'] = t1
-    data['r5-euc'] = t5
-    data['r10-euc'] = t10
-    data['r25-euc'] = t25
-    data['r50-euc'] = t50
+    data['r1-an'] = r1_c
+    data['r5-an'] = r5_c
+    data['r10-an'] = r10_c
+    data['r25-an'] = r25_c
+    data['r50-an'] = r50_c
+    data['r1-cos'] = r1_cos
+    data['r5-cos'] = r5_cos
+    data['r10-cos'] = r10_cos
+    data['r25-cos'] = r25_cos
+    data['r50-cos'] = r50_cos
+    data['r1-euc'] = r1_euc
+    data['r5-euc'] = r5_euc
+    data['r10-euc'] = r10_euc
+    data['r25-euc'] = r25_euc
+    data['r50-euc'] = r50_euc
+    data['p5'] = p5
+    data['p75'] = p75
+    data['p9'] = p9
+    return json.dumps(data)
+
+@app.route('/entailment')
+def entailment():
+    data = {}
+    c1 = request.args.get('c1')
+    c2 = request.args.get('c2')
+    r1_cos, r5_cos, r10_cos, r25_cos, r50_cos = get_recall(os.path.join(vae_predictions_path, c1 + '.json'), c2, 'predictions_cos')
+    r1_euc, r5_euc, r10_euc, r25_euc, r50_euc = get_recall(os.path.join(vae_predictions_path, c1 + '.json'), c2, 'predictions_euc')
+    r1_c, r5_c, r10_c, r25_c, r50_c = get_recall(os.path.join(inception_predictions_path, c1 + '.json'), c2, 'predictions')
+    p5, p75, p9 = get_inception_probs(os.path.join(inception_predictions_path, c1 + '.json'), c2)
+    data['r1-an'] = r1_c
+    data['r5-an'] = r5_c
+    data['r10-an'] = r10_c
+    data['r25-an'] = r25_c
+    data['r50-an'] = r50_c
+    data['r1-cos'] = r1_cos
+    data['r5-cos'] = r5_cos
+    data['r10-cos'] = r10_cos
+    data['r25-cos'] = r25_cos
+    data['r50-cos'] = r50_cos
+    data['r1-euc'] = r1_euc
+    data['r5-euc'] = r5_euc
+    data['r10-euc'] = r10_euc
+    data['r25-euc'] = r25_euc
+    data['r50-euc'] = r50_euc
     data['p5'] = p5
     data['p75'] = p75
     data['p9'] = p9

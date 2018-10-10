@@ -10,6 +10,8 @@ const red = 'rgba(255, 94, 87,1.0)'
 const yellow = 'rgba(255, 221, 89,1.0)'
 const green = 'rgba(11, 232, 129,1.0)'
 
+var active = {'c1': null, 'c2': null}
+
 var config = null
 var ctx = $('#plot')[0].getContext('2d')
 var chartData = {'c1': null, 'c2': null}
@@ -55,6 +57,7 @@ var chart = new Chart(ctx, {
 function classClick(label, c) {
     $('#loadingScreen').css('display', '')
     $('#loadingText').text('Loading class data')
+    active[c] = label
     $.get('http://localhost:5000/data?label=' + label, function(data) {
         var parsed = $.parseJSON(data)
         var reconstruction_mean = parsed.img
@@ -109,6 +112,40 @@ function classClick(label, c) {
         chart.data.datasets = chartDatasets
         chart.update()
     })
+
+    //Populate entailment
+    if (active['c1'] != null && active['c2'] != null) {
+        var html_str = active['c1'] + ' <span class="glyphicon glyphicon-arrow-right"></span> ' + active['c2']
+        $('#en-table-title').html(html_str)
+        $.get('http://localhost:5000/entailment?c1=' + active['c1'] + '&c2=' + active['c2'], function(data) {
+            var parsed = $.parseJSON(data)
+            $.each(['r1', 'r5', 'r10', 'r25', 'r50'], function(i, r) {
+                $.each(['euc', 'cos', 'an'], function(j, s) {
+                    var idx = r + '-' + s
+                    var rVal = Math.round(parsed[idx] * 100) / 100
+                    var bgColor = red
+                    if(rVal >= .25) {
+                        bgColor = yellow
+                    }
+                    if(rVal >= .75) {
+                        bgColor = green
+                    }
+                    $('#en-' + idx).text(rVal).css('background-color', bgColor)
+                })
+            })
+            $.each(['p5', 'p75', 'p9'], function(i, p) {
+                var pVal = Math.round(parsed[p] * 100) / 100
+                var bgColor = red
+                if(pVal >= .25) {
+                    bgColor = yellow
+                }
+                if(pVal >= .75) {
+                    bgColor = green
+                }
+                $('#en-' + p).text(pVal).css('background-color', bgColor)
+            })
+        })
+    }
 }
 
 function populateClasses() {

@@ -270,6 +270,67 @@ html, body {
             </div>
             <div class="section-lg">
                 <h1>Entailment</h1>
+                <h4 id="en-table-title">c1 -> c2:</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Prediction</th>
+                            <th scope="col" data-toggle="tooltip" title="Prediction using VAE class means method with euclidean similarity">vae_mean_euc</th>
+                            <th scope="col" data-toggle="tooltip" title="Prediction using VAE class means method with cosine similarity">vae_mean_cos</th>
+                            <th scope="col" data-toggle="tooltip" title="Prediction using inception image classification network">inception (classifier)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion c1 predicted to be c2">r1</th>
+                            <td id="en-r1-euc"></td>
+                            <td id="en-r1-cos"></td>
+                            <td id="en-r1-an"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion c1 predicted in top 5 of c2">r5</th>
+                            <td id="en-r5-euc"></td>
+                            <td id="en-r5-cos"></td>
+                            <td id="en-r5-an"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion c1 predicted in top 10 of c2">r10</th>
+                            <td id="en-r10-euc"></td>
+                            <td id="en-r10-cos"></td>
+                            <td id="en-r10-an"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion c1 predicted in top 25 of c2">r25</th>
+                            <td id="en-r25-euc"></td>
+                            <td id="en-r25-cos"></td>
+                            <td id="en-r25-an"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion c1 predicted in top 50 of c2">r50</th>
+                            <td id="en-r50-euc"></td>
+                            <td id="en-r50-cos"></td>
+                            <td id="en-r50-an"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion c1 predicted >50% chance to be c2">p>.5</th>
+                            <td class="blackout"></td>
+                            <td class="blackout"></td>
+                            <td id="en-p5"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion c1 predicted >75% chance to be c2">p>.75</th>
+                            <td class="blackout"></td>
+                            <td class="blackout"></td>
+                            <td id="en-p75"></td>
+                        </tr>
+                        <tr>
+                            <th scope="row" data-toggle="tooltip" title="Proportion c1 predicted >90% chance to be c2">p>.9</th>
+                            <td class="blackout"></td>
+                            <td class="blackout"></td>
+                            <td id="en-p9"></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
