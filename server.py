@@ -96,11 +96,12 @@ def classes():
 def data():
     data = {}
     label = request.args.get('label')
-    path = os.path.join(model.config.image_path, label + '.jpg')
-    if not os.path.exists(path):
-        return 'Image not found'
-    with open(path, 'rb') as f:
-        data['img'] = base64.b64encode(f.read()).decode('utf-8')
+    with open(os.path.join(model.config.image_path, 'means/{0}.jpg'.format(label)), 'rb') as f:
+        data['img_mean'] = base64.b64encode(f.read()).decode('utf-8')
+    with open(os.path.join(model.config.image_path, 'nearest/{0}.jpg'.format(label)), 'rb') as f:
+        data['img_nearest'] = base64.b64encode(f.read()).decode('utf-8')
+    with open(os.path.join(model.config.image_path, 'random/{0}.jpg'.format(label)), 'rb') as f:
+        data['img_random'] = base64.b64encode(f.read()).decode('utf-8')
     mean_reduced = model.means_reduced[label].tolist()
     encodings_reduced = model.encodings_reduced[label].tolist()
     mean_reduced = {'x': mean_reduced[0], 'y': mean_reduced[1]}

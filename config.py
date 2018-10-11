@@ -25,20 +25,16 @@ class Config():
         self.means_path = os.path.join(model_path, 'means.p')
         self.save_path = os.path.join(model_path, 'config.json')
         self.image_path = os.path.join(model_path, 'images')
-        self.predictions_path = os.path.join(model_path, 'predictions')
         self.encodings_reduced_path = os.path.join(model_path, 'encodings_reduced.p')
         self.means_reduced_path = os.path.join(model_path, 'means_reduced.p')
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)
         if not os.path.exists(self.image_path):
             os.makedirs(self.image_path)
-        if not os.path.exists(self.predictions_path):
-            os.makedirs(self.predictions_path)
         self.trained = False
         self.computed_encodings = False
         self.computed_test_encodings = False
         self.computed_means = False
-        self.predicted = False
         self.computed_reduced = False
 
     def load(self, path):

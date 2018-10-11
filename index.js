@@ -60,12 +60,13 @@ function classClick(label, c) {
     active[c] = label
     $.get('http://localhost:5000/data?label=' + label, function(data) {
         var parsed = $.parseJSON(data)
-        var reconstruction_mean = parsed.img
         var mean_encoding = parsed.mean
         var encodings = parsed.encodings
 
         //Populate sidebar
-        $('#' + c + '-reconstruction-mean').attr('src', 'data:image/jpeg;base64, ' + reconstruction_mean)
+        $('#' + c + '-reconstruction-mean').attr('src', 'data:image/jpeg;base64, ' + parsed.img_mean)
+        $('#' + c + '-reconstruction-nearest').attr('src', 'data:image/jpeg;base64, ' + parsed.img_nearest)
+        $('#' + c + '-reconstruction-random').attr('src', 'data:image/jpeg;base64, ' + parsed.img_random)
         $('#loadingScreen').css('display', 'none')
 
         //Populate accuracy table
