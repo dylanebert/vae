@@ -13,7 +13,6 @@ import os
 import pickle
 import json
 from sklearn.decomposition import PCA
-from scipy.spatial.distance import cosine, euclidean
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class VAE:
