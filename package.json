@@ -8,7 +8,7 @@
   "author": "Dylan Ebert",
   "license": "ISC",
   "dependencies": {
-    "electron": "^2.0.8",
+    "electron": "^2.0.11",
     "electron-reload": "^1.2.5",
     "npm": "^6.4.1"
   }

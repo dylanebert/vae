@@ -27,7 +27,7 @@ with open(config_path, 'r') as f:
 model = Model(config)
 print('Finished initialization')
 
-inception_predictions_path = 'inception_predictions'
+inception_predictions_path = '/home/dylan/Documents/inception/model/gmc/predictions'
 vae_predictions_path = 'model/gmc/predictions'
 
 def get_r_sets(path, target, method):
