@@ -10,8 +10,8 @@ with open('model/gmc/encodings.p', 'rb') as f:
 with open('model/gmc/means.p', 'rb') as f:
     means = pickle.load(f)
 
-with open('exemplars_nearest', 'w+') as f:
-    with open('exemplars_random', 'w+') as g:
+with open('model/gmc/exemplars_nearest', 'w+') as f:
+    with open('model/gmc/exemplars_random', 'w+') as g:
         for label, entry in encodings.items():
             mean = means[label]
             encodings = entry['encodings']
@@ -20,7 +20,7 @@ with open('exemplars_nearest', 'w+') as f:
             idx_sort = np.argsort(dists)
             idx_nearest = idx_sort[0]
             idx_random = random.choice(idx_sort)
-            exemplar_nearest = (filenames[idx_nearest], dists[idx_nearest])
-            exemplar_random = (filenames[idx_random], dists[idx_random])
-            f.write('{0}\t{1}\t{2}\n'.format(label, filenames[idx_nearest], dists[idx_nearest]))
-            g.write('{0}\t{1}\t{2}\n'.format(label, filenames[idx_random], dists[idx_random]))
+            exemplar_nearest = {'label': label, 'filename': filenames[idx_nearest], 'dist_to_mean': dists[idx_nearest], 'encoding': encodings[idx_nearest]}
+            exemplar_random = {'label': label, 'filename': filenames[idx_random], 'dist_to_mean': dists[idx_random], 'encoding': encodings[idx_random]}
+            f.write('{0}\n'.format(json.dumps(exemplar_nearest)))
+            g.write('{0}\n'.format(json.dumps(exemplar_random)))
