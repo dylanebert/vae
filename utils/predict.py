@@ -45,9 +45,9 @@ def predict(exemplar_path, save_path):
 
 if __name__ == '__main__':
     #exemplar_path = 'model/gmc/means.p'
-    exemplar_path = 'model/gmc/exemplars_nearest.p'
+    exemplar_path = 'model/gmc/exemplars_random.p'
 
     #save_path = 'model/gmc/predictions/means'
-    save_path = 'model/gmc/predictions/exemplars_nearest'
+    save_path = 'model/gmc/predictions/exemplars_random'
 
     predict(exemplar_path, save_path)
