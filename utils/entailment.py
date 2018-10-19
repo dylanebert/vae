@@ -2,17 +2,22 @@ import json
 import os
 from collections import defaultdict
 from itertools import product
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--w1_path', type=str, default='gmc_words')
+parser.add_argument('--entailment_path', type=str, default='/data/nlp/vae/entailment')
+args = parser.parse_args()
+
+with open(args.w1_path, 'r') as f:
+    w1_words = f.read().splitlines()
 with open('gmc_words', 'r') as f:
     gmc_words = f.read().splitlines()
 with open('wordnet_gmc_filtered_pairs', 'r') as f:
     wordnet_gmc_pairs = [tuple(line.rstrip().split(' ')) for line in f]
-wordnet_words = list(set([pair[0] for pair in wordnet_gmc_pairs] + [pair[1] for pair in wordnet_gmc_pairs]))
-words_to_evaluate = [word for word in gmc_words if word in wordnet_words]
 
-entailment_path = '/data/entailment'
 vae_prediction_paths = {'means': 'model/gmc/predictions/means', 'exemplars_nearest': 'model/gmc/predictions/exemplars_nearest', 'exemplars_random': 'model/gmc/predictions/exemplars_random'}
-classifier_prediction_path = '/home/dylan/Documents/inception/model/gmc/predictions'
+classifier_prediction_path = '/data/nlp/inception/model/gmc/predictions'
 
 ordered_keys = [
     'true_label',
@@ -58,14 +63,14 @@ ordered_keys = [
     'classifier_p9'
 ]
 
-n = len(words_to_evaluate)
-for i, w1 in enumerate(words_to_evaluate):
+n = len(w1_words)
+for i, w1 in enumerate(w1_words):
     print('{0} of {1}'.format(i+1, n), end='\r')
-    if os.path.exists(os.path.join(entailment_path, w1)):
+    if os.path.exists(os.path.join(args.entailment_path, w1)):
         continue
-    with open(os.path.join(entailment_path, w1), 'w+') as g:
+    with open(os.path.join(args.entailment_path, w1), 'w+') as g:
         g.write('{0}\n'.format('\t'.join(ordered_keys)))
-        for w2 in words_to_evaluate:
+        for w2 in gmc_words:
             if (w1, w2) not in wordnet_gmc_pairs:
                 continue
 
