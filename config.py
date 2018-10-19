@@ -15,9 +15,10 @@ class Config():
 
     def load(self, path):
         self.__dict__ = json.loads(open(path, 'r').read())
+        print('Loaded config: {0}'.format(self))
 
     def save(self):
-        with open(self.save_path, 'w+') as f:
+        with open(os.path.join(self.model_path, 'config.json'), 'w+') as f:
             f.write(json.dumps(self.__dict__, indent=4))
 
     def __str__(self):

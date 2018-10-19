@@ -21,19 +21,12 @@ from config import Config
 class VAE:
     def __init__(self, config):
         self.config = config
-        self.train_generator = None
-        self.dev_generator = None
-        self.test_generator = None
-        self.data_loaded = False
-        self.encodings = {}
-        self.class_means = {}
 
         self.weights_path = os.path.join(config.model_path, 'weights_best.p')
         self.overfit_path = os.path.join(config.model_path, 'weights_overfit.p')
         self.logs_path = os.path.join(config.model_path, 'logs')
         self.images_path = os.path.join(config.model_path, 'images')
         self.encodings_path = os.path.join(config.model_path, 'encodings', 'all.p')
-        self.means_path = os.path.join(config.model_path, 'encodings', 'means.p')
         self.train_path = os.path.join(config.data_path, 'train')
         self.dev_path = os.path.join(config.data_path, 'dev')
         self.test_path = os.path.join(config.data_path, 'test')
@@ -44,8 +37,6 @@ class VAE:
             os.makedirs(self.logs_path)
         if not os.path.exists(os.path.join(config.model_path, 'encodings')):
             os.makedirs(os.path.join(config.model_path, 'encodings'))
-        if not os.path.exists(self.images_path):
-            os.makedirs(self.images_path)
 
         image_size = config.image_size
         filters = config.filters
@@ -114,31 +105,25 @@ class VAE:
         self.generator = Model(decoder_input, _x_reconstr)
 
         try:
-            self.vae.load_weights(config.weights_path)
+            self.vae.load_weights(self.weights_path)
             print('Loaded weights')
         except:
             print('Couldn\'t find/load weights')
 
-    def build_generators(self):
-        self.train_generator = DataGenerator(self.train_path, self.config.image_size, self.config.batch_size)
-        self.dev_generator = DataGenerator(self.dev_path, self.config.image_size, self.config.batch_size)
-        self.test_generator = DataGenerator(self.test_path, self.config.image_size, self.config.batch_size)
-
     def train(self, max_epochs=1000, overfit=False):
-        if not self.data_loaded:
-            self.build_generators()
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=self.logs_path)
         checkpoint_callback = keras.callbacks.ModelCheckpoint(self.weights_path, save_best_only=True, verbose=1)
         callbacks = [tensorboard_callback, checkpoint_callback]
         if not overfit:
             earlystopping_callback = keras.callbacks.EarlyStopping(verbose=1, patience=2)
             callbacks.append(earlystopping_callback)
-        self.vae.fit_generator(generator=self.train_generator, validation_data=self.dev_generator, epochs=max_epochs, callbacks=callbacks)
+        train_generator = DataGenerator(self.train_path, self.config.image_size, self.config.batch_size, train=True)
+        dev_generator = DataGenerator(self.dev_path, self.config.image_size, self.config.batch_size)
+        self.vae.fit_generator(generator=train_generator, validation_data=dev_generator, epochs=max_epochs, callbacks=callbacks)
         self.vae.save_weights(self.overfit_path)
 
-    def compute_encodings(self):
-        if not self.data_loaded:
-            self.build_generators()
+    def encode(self):
+        train_generator = DataGenerator(self.train_path, self.config.image_size, self.config.batch_size)
         z = self.encoder.predict_generator(self.train_generator, verbose=1)
         class_index_dict = self.train_generator.generator.class_indices
         index_class_dict = {k: v for v, k in class_index_dict.items()}
@@ -155,73 +140,49 @@ class VAE:
                     self.encodings[class_name] = {'encodings': [], 'filenames': []}
                 self.encodings[class_name]['encodings'].append(z[self.config.batch_size * i + j].tolist())
                 self.encodings[class_name]['filenames'].append(filenames[self.config.batch_size * i + j])
-        with open(self.config.encodings_path, 'wb+') as f:
+        with open(self.encodings_path, 'wb+') as f:
             pickle.dump(self.encodings, f)
 
-    def compute_means(self):
-        try:
-            with open(self.encodings_path, 'rb') as f:
-                self.encodings = pickle.load(f)
-            print('Loaded encodings')
-        except:
-            self.compute_encodings()
-        print('Computing class means')
-        self.class_means = {}
-        for label, entry in self.encodings.items():
-            encodings = entry['encodings']
-            self.class_means[label] = np.mean(encodings, axis=0).tolist()
-        with open(self.means_path, 'wb+') as f:
-            pickle.dump(self.class_means, f)
-
-    def reconstruct_means(self):
-        try:
-            with open(self.config.means_path, 'rb') as f:
-                self.class_means = pickle.load(f)
-            print('Loaded means')
-        except:
-            self.compute_means()
-        print('Decoding class means')
-        class_names = list(self.class_means.keys())
-        class_means = np.array(list(self.class_means.values()))
-        decoded = self.generator.predict(class_means)
+    def reconstruct(self, filepath, savepath):
+        with open(filepath, 'rb') as f:
+            vectors = pickle.load(f)
+        if not os.path.exists(savepath):
+            os.makedirs(savepath)
+        print('Loaded vectors. Decoding...')
+        labels = list(vectors.keys())
+        vectors = np.array(list(vectors.values()))
+        decoded = self.generator.predict(vectors)
         for i, img in enumerate(decoded):
-            class_name = class_names[i]
-            image_path = os.path.join(self.config.image_path, class_name + '.jpg')
+            label = labels[i]
+            image_path = os.path.join(savepath, label + '.jpg')
             imsave(image_path, img)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', help='data directory, containg train/dev/test folders', type=str, required=True)
     parser.add_argument('--model_path', help='directory in which to store', type=str, required=True)
+    parser.add_argument('--data_path', help='data directory, containg train/dev/test folders', type=str, default='')
     parser.add_argument('--image_size', help='square height/width at which to process input', type=int, default=64)
     parser.add_argument('--filters', help='number of convolution filters', type=int, default=64)
     parser.add_argument('--latent_size', help='dimension of latent space', type=int, default=300)
     parser.add_argument('--batch_size', help='number of images per batch', type=int, default=100)
     parser.add_argument('--learning_rate', help='model learning rate', type=float, default=.001)
     parser.add_argument('--train', help='train for given max epochs', type=int, default=0)
-    parser.add_argument('--compute_encodings', help='compute and store train encodings', action='store_true')
-    parser.add_argument('--compute_means', help='compute and store mean encoding of each word', action='store_true')
-    parser.add_argument('--reconstruct_means', help='decode and store image corresponding to each mean', action='store_true')
-    parser.add_argument('-a', '--all', help='shorthand to perform all training procedures', action='store_true')
+    parser.add_argument('--encode', help='encode training data and store vectors', action='store_true')
+    parser.add_argument('--reconstruct', help='reconstruct vectors at given filepath (relative to model) and save images', type=str, default='')
+    parser.add_argument('--image_path', help='override default save path (relative to model) for reconstructions', type=str, default='images')
     args = parser.parse_args()
-    if not args.train and not args.compute_encodings and not args.compute_means and not args.reconstruct_means and not args.all:
-        sys.exit('Error: at least one command is required (train/compute_encodings/compute_means/reconstruct_means/all)')
 
-    if args.data_path is not None and not os.path.exists(args.data_path):
-        sys.exit('Error: data path {0} not found'.format(args.data_path))
     config = Config(args.data_path, args.model_path, args.image_size, args.filters, args.latent_size, args.batch_size, args.learning_rate)
-    if args.model_path is not None and os.path.exists(os.path.join(args.model_path, 'config.json')):
+    if os.path.exists(os.path.join(args.model_path, 'config.json')):
         config.load(os.path.join(args.model_path, 'config.json'))
+    if not os.path.exists(config.data_path):
+        sys.exit('Error: data path {0} not found'.format(config.data_path))
 
     vae = VAE(config)
     if args.train is not 0:
         vae.train(args.train)
-    elif args.all:
-        vae.train()
-    if args.compute_encodings or args.all:
-        vae.compute_encodings()
-    if args.compute_means or args.all:
-        vae.compute_means()
-    if args.reconstruct_means or args.all:
-        vae.reconstruct_means()
+    if args.encode:
+        vae.encode()
+    if args.reconstruct is not '':
+        vae.reconstruct(os.path.join(config.model_path, args.reconstruct), os.path.join(config.model_path, args.image_path))
     config.save()
