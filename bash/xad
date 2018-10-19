@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /data/nlp/vae
+python3 utils/entailment.py -i /data/nlp/vae/data/stratified/xad -o /data/nlp/vae/entailment
