@@ -66,11 +66,11 @@ def threshold(words):
                     f.write('\n'.join(neighbors))
 
 if __name__ == '__main__':
-    if not len(sys.argv == 2):
+    if not len(sys.argv) == 2:
         sys.exit('Invalid args. Use compute_membership.py [input_words_file]')
     input_filename = sys.argv[1]
     with open(input_filename, 'r') as f:
         words = f.read().splitlines()
 
-    k_nearest(words)
+    #k_nearest(words)
     threshold(words)
