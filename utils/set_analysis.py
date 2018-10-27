@@ -12,19 +12,22 @@ with open('data/wordnet_gmc_filtered_pairs', 'r') as f:
 classifier_membership_dir = '/home/dylan/Documents/inception/model/gmc/membership'
 classifier_methods = ['r1', 'r5', 'r10', 'r25', 'r50', 'p5', 'p75', 'p9']
 
-vae_membership_dir = 'analysis/membership'
-vae_methods = ['means', 'exemplars_nearest', 'exemplars_random']
+vae_set_membership_dir = '/data/nlp/vae/model/gmc/membership/knearest'
+vae_set_methods = ['means', 'exemplars_nearest', 'exemplars_random']
+
+exemplar_dir = '/home/dylan/Documents/inception/model/gmc/exemplars'
+exemplar_subdirs = ['original/nearest', 'original/random', 'reconstruction/nearest', 'reconstruction/means', 'reconstruction/random']
 
 cols = classifier_methods
-rows = ['S1_r1', 'S1_r5', 'S1_r10', 'S1_r25', 'S1_r50', 'S1_p5', 'S1_p75', 'S1_p9', 'S2_means', 'S2_nearest', 'S2_random']
+rows = ['S1_r1', 'S1_r5', 'S1_r10', 'S1_r25', 'S1_r50', 'S1_p5', 'S1_p75', 'S1_p9', 'S2_means', 'S2_nearest', 'S2_random'] + exemplar_subdirs
 
-i = 0
-for (w1, w2) in wordnet_gmc_pairs:
-    print(w1, w2)
+n = len(wordnet_gmc_pairs)
+for i, (w1, w2) in enumerate(wordnet_gmc_pairs):
+    print('{0} of {1}: {2}, {3}'.format(i+1, n, w1, w2))
     table = {}
-    for col in cols:
-        table[col] = {}
-    for set, dir, methods in [('S1', classifier_membership_dir, classifier_methods), ('S2', vae_membership_dir, vae_methods)]:
+    for row in rows:
+        table[row] = defaultdict(int)
+    for set, dir, methods in [('S1', classifier_membership_dir, classifier_methods), ('S2', vae_set_membership_dir, vae_set_methods)]:
         for row_method in methods:
             w1_filepath = os.path.join(dir, row_method, w1)
             w1_members = []
@@ -51,6 +54,23 @@ for (w1, w2) in wordnet_gmc_pairs:
                             if member not in w2_members:
                                 true_subset = False
 
-                    table[col_header][row_header] = (precision, recall, int(true_subset))
-
-    break
+                    table[row_header][col_header] = (precision, recall, int(true_subset))
+    for dir in exemplar_subdirs:
+        row_header = dir
+        with open(os.path.join(exemplar_dir, dir, w1), 'r') as f:
+            labels = []
+            p_vals = []
+            for line in f:
+                label, p_val = line.rstrip().split('\t')
+                labels.append(label)
+                p_vals.append(float(p_val))
+            for r in [1, 5, 10, 25, 50]:
+                col_header = 'r' + str(r)
+                table[row_header][col_header] = int(w2 in labels[:r])
+            for p in [.5, .75, .9]:
+                col_header = 'p' + str(p * 100).replace('.','').replace('0','')
+                table[row_header][col_header] = int(p_vals[labels.index(w2)] >= p)
+    with open(os.path.join('/data/nlp/vae/model/gmc/sets', w1 + '_' + w2), 'w+') as f:
+        f.write('\t'.join(['wordnet'] + cols) + '\n')
+        for row in rows:
+            f.write('\t'.join([row] + [str(table[row][col]).replace(' ','') for col in cols]) + '\n')

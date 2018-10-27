@@ -73,4 +73,5 @@ if __name__ == '__main__':
         words = f.read().splitlines()
 
     #k_nearest(words)
-    threshold(words)
+    #threshold(words)
+    exemplars(words)
