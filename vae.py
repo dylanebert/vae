@@ -16,6 +16,8 @@ from sklearn.decomposition import PCA
 import argparse
 import sys
 from config import Config
+from tqdm import tqdm
+import h5py
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class VAE:
@@ -26,7 +28,6 @@ class VAE:
         self.overfit_path = os.path.join(config.model_path, 'weights_overfit.p')
         self.logs_path = os.path.join(config.model_path, 'logs')
         self.images_path = os.path.join(config.model_path, 'images')
-        self.encodings_path = os.path.join(config.model_path, 'encodings', 'all.p')
         self.train_path = os.path.join(config.data_path, 'train')
         self.dev_path = os.path.join(config.data_path, 'dev')
         self.test_path = os.path.join(config.data_path, 'test')
@@ -35,8 +36,6 @@ class VAE:
             os.makedirs(config.model_path)
         if not os.path.exists(self.logs_path):
             os.makedirs(self.logs_path)
-        if not os.path.exists(os.path.join(config.model_path, 'encodings')):
-            os.makedirs(os.path.join(config.model_path, 'encodings'))
 
         image_size = config.image_size
         filters = config.filters
@@ -124,38 +123,26 @@ class VAE:
 
     def encode(self):
         train_generator = DataGenerator(self.train_path, self.config.image_size, self.config.batch_size)
-        z = self.encoder.predict_generator(self.train_generator, verbose=1)
-        class_index_dict = self.train_generator.generator.class_indices
-        index_class_dict = {k: v for v, k in class_index_dict.items()}
-        filenames = self.train_generator.generator.filenames
-        num_classes = len(index_class_dict)
-        n = len(self.train_generator)
-        print('Computing encodings')
-        for i in range(n):
-            print('{0} of {1}'.format(i+1, n), end='\r')
-            _, y = self.train_generator.generator[i]
-            for j, class_index in enumerate(y):
-                class_name = index_class_dict[class_index]
-                if class_name not in self.encodings:
-                    self.encodings[class_name] = {'encodings': [], 'filenames': []}
-                self.encodings[class_name]['encodings'].append(z[self.config.batch_size * i + j].tolist())
-                self.encodings[class_name]['filenames'].append(filenames[self.config.batch_size * i + j])
-        with open(self.encodings_path, 'wb+') as f:
-            pickle.dump(self.encodings, f)
+        z = self.encoder.predict_generator(train_generator, verbose=1)
 
-    def reconstruct(self, filepath, savepath):
-        with open(filepath, 'rb') as f:
-            vectors = pickle.load(f)
-        if not os.path.exists(savepath):
-            os.makedirs(savepath)
-        print('Loaded vectors. Decoding...')
-        labels = list(vectors.keys())
-        vectors = np.array(list(vectors.values()))
-        decoded = self.generator.predict(vectors)
-        for i, img in enumerate(decoded):
-            label = labels[i]
-            image_path = os.path.join(savepath, label + '.jpg')
-            imsave(image_path, img)
+        with h5py.File(os.path.join(self.model_path, 'encodings.hdf5'), 'w') as f:
+            f.create_dataset('encodings', data=z)
+            f.create_dataset('filenames', data=np.array(train_generator.generator.filenames, dtype='S'))
+
+    def reconstruct(self, encodings_path, images_path):
+        if not os.path.exists(images_path):
+            os.makedirs(images_path)
+        with h5py.File(encodings_path, 'r') as f:
+            encodings = f['encodings']
+            filenames = [filename.decode('utf-8') for filename in f['filenames']]
+            decoded = self.generator.predict(encodings, verbose=1)
+        for i in tqdm(range(len(decoded))):
+            img = decoded[i]
+            dir, filename = os.path.split(filenames[i])
+            dirpath = os.path.join(images_path, dir)
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+            imsave(os.path.join(dirpath, filename), img)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
