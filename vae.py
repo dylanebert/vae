@@ -24,8 +24,8 @@ class VAE:
     def __init__(self, config):
         self.config = config
 
-        self.weights_path = os.path.join(config.model_path, 'weights_best.p')
-        self.overfit_path = os.path.join(config.model_path, 'weights_overfit.p')
+        self.weights_path = os.path.join(config.model_path, 'weights_best.h5')
+        self.overfit_path = os.path.join(config.model_path, 'weights_overfit.h5')
         self.logs_path = os.path.join(config.model_path, 'logs')
         self.images_path = os.path.join(config.model_path, 'images')
         self.train_path = os.path.join(config.data_path, 'train')
@@ -125,7 +125,7 @@ class VAE:
         train_generator = DataGenerator(self.train_path, self.config.image_size, self.config.batch_size)
         z = self.encoder.predict_generator(train_generator, verbose=1)
 
-        with h5py.File(os.path.join(self.model_path, 'encodings.hdf5'), 'w') as f:
+        with h5py.File(os.path.join(self.config.model_path, 'encodings.hdf5'), 'w') as f:
             f.create_dataset('encodings', data=z)
             f.create_dataset('filenames', data=np.array(train_generator.generator.filenames, dtype='S'))
 
