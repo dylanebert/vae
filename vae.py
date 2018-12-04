@@ -18,6 +18,7 @@ import sys
 from config import Config
 from tqdm import tqdm
 import h5py
+import math
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 class VAE:
@@ -135,14 +136,19 @@ class VAE:
         with h5py.File(encodings_path, 'r') as f:
             encodings = f['encodings']
             filenames = [filename.decode('utf-8') for filename in f['filenames']]
-            decoded = self.generator.predict(encodings, verbose=1)
-        for i in tqdm(range(len(decoded))):
-            img = decoded[i]
-            dir, filename = os.path.split(filenames[i])
-            dirpath = os.path.join(images_path, dir)
-            if not os.path.exists(dirpath):
-                os.makedirs(dirpath)
-            imsave(os.path.join(dirpath, filename), img)
+            num_batches = int(math.ceil(float(len(encodings)) / self.config.batch_size))
+            n = len(encodings)
+            for i in tqdm(range(num_batches)):
+                start_idx = i * self.config.batch_size
+                end_idx = min(i * self.config.batch_size + self.config.batch_size, n)
+                images = self.generator.predict_on_batch(encodings[start_idx:end_idx])
+                for j, img in enumerate(images):
+                    idx = i * self.config.batch_size + j
+                    dir, filename = os.path.split(filenames[idx])
+                    dirpath = os.path.join(images_path, dir)
+                    if not os.path.exists(dirpath):
+                        os.makedirs(dirpath)
+                    imsave(os.path.join(dirpath, filename), img)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
