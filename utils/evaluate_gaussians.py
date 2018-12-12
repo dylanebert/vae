@@ -5,32 +5,28 @@ import pickle
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
-w1 = 'animal'
-w2 = 'dog'
+w1 = 'dog'
+w2 = 'animal'
 
-with open('model/gmc/encoding_word_indices.p', 'rb') as f:
-    encoding_word_indices = pickle.load(f)
+with h5py.File('model/gmc/gaussians_2d.hdf5') as f:
+    stacked_w1 = f[w1]
+    stacked_w2 = f[w2]
+    w1_mean = stacked_w1[0]
+    w2_mean = stacked_w2[0]
+    w1_cov = stacked_w1[1:]
+    w2_cov = stacked_w2[1:]
 
-with h5py.File('model/gmc/encodings_reduced.hdf5') as f:
-    i, n = encoding_word_indices[w1]
-    w1_encodings = f['encodings'][i:i+n]
-
-    i, n = encoding_word_indices[w2]
-    w2_encodings = f['encodings'][i:i+n]
-
-    w1_mean = np.mean(w1_encodings, axis=0)
-    w1_cov = np.cov(w1_encodings.T)
     w1_normal = multivariate_normal(w1_mean, w1_cov)
-
-    w2_mean = np.mean(w2_encodings, axis=0)
-    w2_cov = np.cov(w2_encodings.T)
     w2_normal = multivariate_normal(w2_mean, w2_cov)
 
-    w1_predictions = np.zeros((len(w1_encodings), 2))
-    for i, val in enumerate(w1_encodings):
-        w1_predictions[i][0] = w1_normal.pdf(val)
-        w1_predictions[i][1] = w2_normal.pdf(val)
+    x, y = np.mgrid[-3:3:.01, -3:3:.01]
+    pos = np.dstack((x, y))
 
-    print(w1_normal.pdf(w1_mean))
-    for item in np.mean(w1_predictions, axis=0):
-        print(item)
+    plt.figure()
+    plt.subplot(121)
+    plt.contourf(x, y, w1_normal.pdf(pos))
+    plt.title(w1)
+    plt.subplot(122)
+    plt.contourf(x, y, w2_normal.pdf(pos))
+    plt.title(w2)
+    plt.show()
