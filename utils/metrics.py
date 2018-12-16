@@ -12,6 +12,12 @@ class Metrics():
         with open('model/gmc/encoding_word_indices.p', 'rb') as f:
             self.encoding_word_indices = pickle.load(f)
 
+    def mean(self, word):
+        i, n = self.encoding_word_indices[word]
+        with h5py.File(self.encodings_path) as f:
+            encodings = f['encodings'][i:i+n]
+            return np.mean(encodings, axis=0)
+
     def dispersion(self, word):
         i, n = self.encoding_word_indices[word]
         sum_cos = 0
@@ -36,12 +42,10 @@ class Metrics():
     def entropy(self, word):
         i, n = self.encoding_word_indices[word]
         sum = 0
-        with h5py.File(self.encodings_path) as f:
-            encodings = f['encodings'][i:i+n]
-            mean = np.mean(encodings, axis=0)
-            for j in range(len(mean)):
-                p = np.abs(mean[j] / float(n))
-                sum += p * np.log2(p)
+        mean = self.mean(word)
+        for j in range(len(mean)):
+            p = np.abs(mean[j] / float(n))
+            sum += p * np.log2(p)
         return -sum
 
     def gaussian_random(self, word):
