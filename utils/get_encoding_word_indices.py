@@ -2,9 +2,15 @@ import h5py
 import pickle
 from tqdm import tqdm
 import os
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--input', default='model/gmc/encodings.hdf5', type=str)
+parser.add_argument('-o', '--output', default='model/gmc/encoding_word_indices.p', type=str)
+args = parser.parse_args()
 
 indices = {}
-with h5py.File('model/gmc/encodings.hdf5') as f:
+with h5py.File(args.input) as f:
     filenames = f['filenames']
     current_word = None
     start_idx = 0
@@ -19,5 +25,5 @@ with h5py.File('model/gmc/encodings.hdf5') as f:
             current_word = word
         n += 1
 
-with open('model/gmc/encoding_word_indices.p', 'wb+') as f:
+with open(args.output, 'wb+') as f:
     pickle.dump(indices, f)

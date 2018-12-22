@@ -45,7 +45,7 @@ class Metrics():
         mean = self.mean(word)
         for j in range(len(mean)):
             p = np.abs(mean[j] / float(n))
-            sum += p * np.log2(p)
+            sum += p * np.log2(p + 1e-6)
         return -sum
 
     def gaussian_random(self, word):
@@ -62,7 +62,33 @@ class Metrics():
             for v in np.random.normal(size=(1000, l)):
                 p = normal.pdf(v)
                 p_sum += p
-            return p_sum
+            return p_sum / 1000.
+
+    def gaussian_random_pair(self, w1, w2):
+        w1_i, w1_n = self.encoding_word_indices[w1]
+        w2_i, w2_n = self.encoding_word_indices[w2]
+        p1_sum = 0
+        p2_sum = 0
+        with h5py.File(self.encodings_path) as f:
+            w1_encodings = f['encodings'][w1_i:w1_i+w1_n]
+            w2_encodings = f['encodings'][w2_i:w2_i+w2_n]
+            l = w1_encodings.shape[1]
+            if w1_n < l or w2_n < l:
+                return -1
+            w1_mean = np.mean(w1_encodings, axis=0)
+            w2_mean = np.mean(w2_encodings, axis=0)
+            w1_cov = np.cov(w1_encodings.T)
+            w2_cov = np.cov(w2_encodings.T)
+            w1_normal = multivariate_normal(mean=w1_mean, cov=w1_cov)
+            w2_normal = multivariate_normal(mean=w2_mean, cov=w2_cov)
+            for v in np.random.normal(size=(1000, l)):
+                p1 = w1_normal.pdf(v)
+                p2 = w2_normal.pdf(v)
+                p1_sum += p1
+                p2_sum += p2
+            p1_sum = p1_sum / 1000.
+            p2_sum = p2_sum / 1000.
+            return np.abs(p2_sum - p1_sum)
 
     def gaussian_dir(self, w1, w2): #returns probability that centroid of w2 is in distribution of w1
         w1_i, w1_n = self.encoding_word_indices[w1]
