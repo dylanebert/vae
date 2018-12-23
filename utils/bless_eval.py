@@ -12,7 +12,7 @@ parser.add_argument('-o', '--output', help='write detailed output to given file'
 parser.add_argument('--dispersion', action='store_true')
 parser.add_argument('--centroid', action='store_true')
 parser.add_argument('--entropy', action='store_true')
-parser.add_argument('--gaussian_random', action='store_true')
+parser.add_argument('--gaussian_rand', action='store_true')
 parser.add_argument('--gaussian_dir', action='store_true')
 parser.add_argument('--test', action='store_true')
 args = parser.parse_args()
@@ -57,7 +57,7 @@ if args.entropy:
         sum += 1
     print('Entropy: {0}'.format(correct / float(sum)))
 
-if args.gaussian_random:
+if args.gaussian_rand:
     correct = 0
     sum = 0
     for i in tqdm(range(len(bless.pairs))):

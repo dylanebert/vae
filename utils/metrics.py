@@ -2,8 +2,8 @@ import os
 import h5py
 import pickle
 from itertools import combinations
-from scipy.spatial.distance import cosine
-from scipy.stats import multivariate_normal
+from scipy.spatial.distance import cosine, euclidean
+from scipy.stats import multivariate_normal, entropy
 import numpy as np
 
 class Metrics():
@@ -43,10 +43,8 @@ class Metrics():
         i, n = self.encoding_word_indices[word]
         sum = 0
         mean = self.mean(word)
-        for j in range(len(mean)):
-            p = np.abs(mean[j] / float(n))
-            sum += p * np.log2(p + 1e-6)
-        return -sum
+        ent = entropy(np.abs(mean))
+        return ent
 
     def gaussian_random(self, word):
         i, n = self.encoding_word_indices[word]
@@ -90,7 +88,7 @@ class Metrics():
             p2_sum = p2_sum / 1000.
             return np.abs(p2_sum - p1_sum)
 
-    def gaussian_dir(self, w1, w2): #returns probability that centroid of w2 is in distribution of w1
+    def gaussian_dir(self, w1, w2):
         w1_i, w1_n = self.encoding_word_indices[w1]
         w2_i, w2_n = self.encoding_word_indices[w2]
         with h5py.File(self.encodings_path) as f:

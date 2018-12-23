@@ -19,7 +19,7 @@ with h5py.File(args.input) as f:
         word = os.path.split(filenames[i])[0].decode('utf-8')
         if not word == current_word:
             if n > 0:
-                indices[word] = (start_idx, n)
+                indices[current_word] = (start_idx, n)
                 n = 0
             start_idx = i
             current_word = word
